@@ -7,25 +7,27 @@ import java.sql.SQLException;
 public class DatabaseConnection {
 
     private static final String URL =
-            "jdbc:mysql://localhost:3306/hospital_management";
+            "jdbc:mysql://localhost:3306/hospital_management"
+            + "?useSSL=false"
+            + "&serverTimezone=UTC";
 
     private static final String USER = "root";
 
-    private static final String PASSWORD =
-            System.getenv("HOSPITAL_DB_PASSWORD");
-
     public static Connection getConnection() throws SQLException {
 
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            throw new SQLException("MySQL JDBC Driver not found!", e);
+        String password =
+                System.getenv("HOSPITAL_DB_PASSWORD");
+
+        if (password == null || password.isEmpty()) {
+            throw new SQLException(
+                    "HOSPITAL_DB_PASSWORD environment variable is not set."
+            );
         }
 
         return DriverManager.getConnection(
                 URL,
                 USER,
-                PASSWORD
+                password
         );
     }
 }
