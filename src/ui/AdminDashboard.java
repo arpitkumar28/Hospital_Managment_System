@@ -1,932 +1,140 @@
 package ui;
 
 import dao.DashboardDAO;
+import ui.components.AppHeader;
+import ui.components.AppSidebar;
+import ui.components.StatCard;
+import ui.theme.AppTheme;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.BorderFactory;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
+import java.awt.BorderLayout;
+import java.awt.GridLayout;
+import java.awt.Dimension;
 
+/** Main administrative shell and database-backed operational overview. */
 public class AdminDashboard extends JFrame {
-
-    // =====================================================
-    // COLORS
-    // =====================================================
-
-    private final Color PRIMARY =
-            new Color(30, 55, 80);
-
-    private final Color SECONDARY =
-            new Color(45, 85, 120);
-
-    private final Color BACKGROUND =
-            new Color(245, 247, 250);
-
-    private final Color WHITE =
-            Color.WHITE;
-
-
-    // =====================================================
-    // DASHBOARD DAO
-    // =====================================================
-
-    private final DashboardDAO dashboardDAO;
-
-
-    // =====================================================
-    // STAT LABELS
-    // =====================================================
-
-    private JLabel patientCountLabel;
-    private JLabel doctorCountLabel;
-    private JLabel appointmentCountLabel;
-    private JLabel pendingCountLabel;
-
-
-    // =====================================================
-    // CENTER PANEL
-    // =====================================================
-
-    private JPanel centerPanel;
-
-
-    // =====================================================
-    // CONSTRUCTOR
-    // =====================================================
+    private final DashboardDAO dashboardDAO = new DashboardDAO();
+    private final StatCard patientCard = new StatCard("Total patients", "—", AppTheme.INFO_COLOR);
+    private final StatCard doctorCard = new StatCard("Total doctors", "—", AppTheme.SECONDARY_COLOR);
+    private final StatCard appointmentCard = new StatCard("Appointments", "—", AppTheme.ACCENT_COLOR);
+    private final StatCard pendingCard = new StatCard("Pending appointments", "—", AppTheme.WARNING_COLOR);
 
     public AdminDashboard() {
-
-        dashboardDAO =
-                new DashboardDAO();
-
-        createUI();
-
-        setTitle(
-                "Hospital Management System - Admin Dashboard"
-        );
-
-        setSize(
-                1200,
-                750
-        );
-
+        super("Hospital Management System");
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setMinimumSize(new Dimension(1000, 680));
+        setSize(1240, 780);
         setLocationRelativeTo(null);
-
-        setDefaultCloseOperation(
-                JFrame.DISPOSE_ON_CLOSE
-        );
-
-        loadDashboardStatistics();
-
+        createUI();
+        refreshStatistics();
         setVisible(true);
     }
 
-
-    // =====================================================
-    // CREATE UI
-    // =====================================================
-
     private void createUI() {
-
-        JPanel mainPanel =
-                new JPanel(
-                        new BorderLayout()
-                );
-
-        mainPanel.setBackground(
-                BACKGROUND
-        );
-
-
-        // =================================================
-        // HEADER
-        // =================================================
-
-        JPanel headerPanel =
-                new JPanel(
-                        new BorderLayout()
-                );
-
-        headerPanel.setBackground(
-                PRIMARY
-        );
-
-        headerPanel.setPreferredSize(
-                new Dimension(
-                        1200,
-                        80
-                )
-        );
-
-
-        JLabel titleLabel =
-                new JLabel(
-                        "  HOSPITAL MANAGEMENT SYSTEM"
-                );
-
-        titleLabel.setForeground(
-                WHITE
-        );
-
-        titleLabel.setFont(
-                new Font(
-                        "Arial",
-                        Font.BOLD,
-                        24
-                )
-        );
-
-
-        JLabel adminLabel =
-                new JLabel(
-                        "ADMIN   "
-                );
-
-        adminLabel.setForeground(
-                WHITE
-        );
-
-        adminLabel.setFont(
-                new Font(
-                        "Arial",
-                        Font.BOLD,
-                        16
-                )
-        );
-
-
-        headerPanel.add(
-                titleLabel,
-                BorderLayout.WEST
-        );
-
-        headerPanel.add(
-                adminLabel,
-                BorderLayout.EAST
-        );
-
-
-        // =================================================
-        // SIDEBAR
-        // =================================================
-
-        JPanel sidePanel =
-                new JPanel();
-
-        sidePanel.setLayout(
-                new BoxLayout(
-                        sidePanel,
-                        BoxLayout.Y_AXIS
-                )
-        );
-
-        sidePanel.setBackground(
-                SECONDARY
-        );
-
-        sidePanel.setPreferredSize(
-                new Dimension(
-                        230,
-                        670
-                )
-        );
-
-
-        JLabel menuTitle =
-                new JLabel(
-                        "  ADMIN MENU"
-                );
-
-        menuTitle.setForeground(
-                WHITE
-        );
-
-        menuTitle.setFont(
-                new Font(
-                        "Arial",
-                        Font.BOLD,
-                        18
-                )
-        );
-
-        menuTitle.setBorder(
-                BorderFactory.createEmptyBorder(
-                        25,
-                        15,
-                        20,
-                        10
-                )
-        );
-
-        menuTitle.setAlignmentX(
-                Component.LEFT_ALIGNMENT
-        );
-
-
-        sidePanel.add(
-                menuTitle
-        );
-
-
-        // =================================================
-        // DASHBOARD
-        // =================================================
-
-        JButton dashboardButton =
-                createMenuButton(
-                        "Dashboard"
-                );
-
-        dashboardButton.addActionListener(
-                e -> loadDashboard()
-        );
-
-        sidePanel.add(
-                dashboardButton
-        );
-
-
-        // =================================================
-        // PATIENTS
-        // =================================================
-
-        JButton patientButton =
-                createMenuButton(
-                        "Patients"
-                );
-
-        patientButton.addActionListener(
-                e -> openPatientPanel()
-        );
-
-        sidePanel.add(
-                patientButton
-        );
-
-
-        // =================================================
-        // DOCTORS
-        // =================================================
-
-        JButton doctorButton =
-                createMenuButton(
-                        "Doctors"
-                );
-
-        doctorButton.addActionListener(
-                e -> openDoctorPanel()
-        );
-
-        sidePanel.add(
-                doctorButton
-        );
-
-
-        // =================================================
-        // APPOINTMENTS
-        // =================================================
-
-        JButton appointmentButton =
-                createMenuButton(
-                        "Appointments"
-                );
-
-        appointmentButton.addActionListener(
-                e -> openAppointmentPanel()
-        );
-
-        sidePanel.add(
-                appointmentButton
-        );
-
-
-        sidePanel.add(
-                Box.createVerticalGlue()
-        );
-
-
-        // =================================================
-        // LOGOUT
-        // =================================================
-
-        JButton logoutButton =
-                createMenuButton(
-                        "Logout"
-                );
-
-        logoutButton.addActionListener(
-                e -> logout()
-        );
-
-        sidePanel.add(
-                logoutButton
-        );
-
-
-        // =================================================
-        // CENTER
-        // =================================================
-
-        centerPanel =
-                new JPanel(
-                        new BorderLayout()
-                );
-
-        centerPanel.setBackground(
-                BACKGROUND
-        );
-
-
-        mainPanel.add(
-                headerPanel,
-                BorderLayout.NORTH
-        );
-
-        mainPanel.add(
-                sidePanel,
-                BorderLayout.WEST
-        );
-
-        mainPanel.add(
-                centerPanel,
-                BorderLayout.CENTER
-        );
-
-
-        add(mainPanel);
-
-
-        loadDashboard();
+        JPanel root = new JPanel(new BorderLayout());
+        root.setBackground(AppTheme.BACKGROUND_COLOR);
+
+        JPanel body = new JPanel(new BorderLayout());
+        body.add(createSidebar(), BorderLayout.WEST);
+        body.add(createDashboardContent(), BorderLayout.CENTER);
+
+        root.add(new AppHeader("Hospital Management System", "Administrator", "ADMIN"), BorderLayout.NORTH);
+        root.add(body, BorderLayout.CENTER);
+        setContentPane(root);
     }
 
-
-    // =====================================================
-    // LOAD DASHBOARD
-    // =====================================================
-
-    private void loadDashboard() {
-
-        centerPanel.removeAll();
-
-
-        // =================================================
-        // TITLE
-        // =================================================
-
-        JPanel titlePanel =
-                new JPanel();
-
-        titlePanel.setLayout(
-                new BoxLayout(
-                        titlePanel,
-                        BoxLayout.Y_AXIS
-                )
-        );
-
-        titlePanel.setBackground(
-                BACKGROUND
-        );
-
-        titlePanel.setBorder(
-                BorderFactory.createEmptyBorder(
-                        25,
-                        30,
-                        10,
-                        30
-                )
-        );
-
-
-        JLabel title =
-                new JLabel(
-                        "Admin Dashboard"
-                );
-
-        title.setFont(
-                new Font(
-                        "Arial",
-                        Font.BOLD,
-                        28
-                )
-        );
-
-        title.setForeground(
-                PRIMARY
-        );
-
-
-        JLabel subtitle =
-                new JLabel(
-                        "Hospital overview and statistics"
-                );
-
-        subtitle.setFont(
-                new Font(
-                        "Arial",
-                        Font.PLAIN,
-                        15
-                )
-        );
-
-        subtitle.setForeground(
-                Color.GRAY
-        );
-
-
-        titlePanel.add(title);
-
-        titlePanel.add(
-                Box.createVerticalStrut(5)
-        );
-
-        titlePanel.add(subtitle);
-
-
-        // =================================================
-        // STATISTICS
-        // =================================================
-
-        JPanel cardsPanel =
-                new JPanel(
-                        new GridLayout(
-                                2,
-                                2,
-                                20,
-                                20
-                        )
-                );
-
-        cardsPanel.setBackground(
-                BACKGROUND
-        );
-
-        cardsPanel.setBorder(
-                BorderFactory.createEmptyBorder(
-                        20,
-                        30,
-                        30,
-                        30
-                )
-        );
-
-
-        // Patient card
-
-        JPanel patientCard =
-                createStatCard(
-                        "PATIENTS",
-                        "0"
-                );
-
-        patientCountLabel =
-                findCountLabel(
-                        patientCard
-                );
-
-
-        // Doctor card
-
-        JPanel doctorCard =
-                createStatCard(
-                        "DOCTORS",
-                        "0"
-                );
-
-        doctorCountLabel =
-                findCountLabel(
-                        doctorCard
-                );
-
-
-        // Appointment card
-
-        JPanel appointmentCard =
-                createStatCard(
-                        "APPOINTMENTS",
-                        "0"
-                );
-
-        appointmentCountLabel =
-                findCountLabel(
-                        appointmentCard
-                );
-
-
-        // Pending card
-
-        JPanel pendingCard =
-                createStatCard(
-                        "PENDING APPOINTMENTS",
-                        "0"
-                );
-
-        pendingCountLabel =
-                findCountLabel(
-                        pendingCard
-                );
-
-
-        cardsPanel.add(
-                patientCard
-        );
-
-        cardsPanel.add(
-                doctorCard
-        );
-
-        cardsPanel.add(
-                appointmentCard
-        );
-
-        cardsPanel.add(
-                pendingCard
-        );
-
-
-        centerPanel.add(
-                titlePanel,
-                BorderLayout.NORTH
-        );
-
-        centerPanel.add(
-                cardsPanel,
-                BorderLayout.CENTER
-        );
-
-
-        centerPanel.revalidate();
-
-        centerPanel.repaint();
-
-
-        loadDashboardStatistics();
+    private AppSidebar createSidebar() {
+        AppSidebar sidebar = new AppSidebar(this::navigate, this::logout);
+        sidebar.addNavigationItem("Dashboard");
+        sidebar.addNavigationItem("Patients");
+        sidebar.addNavigationItem("Doctors");
+        sidebar.addNavigationItem("Appointments");
+        sidebar.setSelected("Dashboard");
+        return sidebar;
     }
 
+    private JPanel createDashboardContent() {
+        JPanel content = new JPanel(new BorderLayout(0, AppTheme.SPACE_LG));
+        content.setBackground(AppTheme.BACKGROUND_COLOR);
+        content.setBorder(AppTheme.pagePadding());
 
-    // =====================================================
-    // CREATE STAT CARD
-    // =====================================================
+        JPanel intro = new JPanel(new BorderLayout());
+        intro.setOpaque(false);
+        JLabel title = new JLabel("Dashboard");
+        title.setFont(AppTheme.FONT_TITLE);
+        title.setForeground(AppTheme.TEXT_PRIMARY);
+        JLabel subtitle = new JLabel("Hospital overview and operational summary");
+        subtitle.setFont(AppTheme.FONT_BODY);
+        subtitle.setForeground(AppTheme.TEXT_SECONDARY);
+        JPanel text = new JPanel();
+        text.setOpaque(false);
+        text.setLayout(new javax.swing.BoxLayout(text, javax.swing.BoxLayout.Y_AXIS));
+        text.add(title);
+        text.add(javax.swing.Box.createVerticalStrut(AppTheme.SPACE_XS));
+        text.add(subtitle);
+        intro.add(text, BorderLayout.WEST);
 
-    private JPanel createStatCard(
-            String title,
-            String value) {
+        JPanel cards = new JPanel(new GridLayout(2, 2, AppTheme.SPACE_LG, AppTheme.SPACE_LG));
+        cards.setOpaque(false);
+        cards.add(patientCard);
+        cards.add(doctorCard);
+        cards.add(appointmentCard);
+        cards.add(pendingCard);
 
-        JPanel card =
-                new JPanel(
-                        new BorderLayout()
-                );
-
-        card.setBackground(
-                WHITE
-        );
-
-        card.setBorder(
-                BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(
-                                new Color(
-                                        220,
-                                        225,
-                                        230
-                                )
-                        ),
-                        BorderFactory.createEmptyBorder(
-                                25,
-                                25,
-                                25,
-                                25
-                        )
-                )
-        );
-
-
-        JLabel titleLabel =
-                new JLabel(
-                        title
-                );
-
-        titleLabel.setFont(
-                new Font(
-                        "Arial",
-                        Font.BOLD,
-                        18
-                )
-        );
-
-        titleLabel.setForeground(
-                PRIMARY
-        );
-
-
-        JLabel valueLabel =
-                new JLabel(
-                        value
-                );
-
-        valueLabel.setFont(
-                new Font(
-                        "Arial",
-                        Font.BOLD,
-                        42
-                )
-        );
-
-        valueLabel.setForeground(
-                SECONDARY
-        );
-
-        valueLabel.setHorizontalAlignment(
-                SwingConstants.CENTER
-        );
-
-
-        card.add(
-                titleLabel,
-                BorderLayout.NORTH
-        );
-
-        card.add(
-                valueLabel,
-                BorderLayout.CENTER
-        );
-
-
-        return card;
+        content.add(intro, BorderLayout.NORTH);
+        content.add(cards, BorderLayout.CENTER);
+        return content;
     }
 
-
-    // =====================================================
-    // FIND COUNT LABEL
-    // =====================================================
-
-    private JLabel findCountLabel(
-            JPanel panel) {
-
-        for (
-                Component component
-                : panel.getComponents()
-        ) {
-
-            if (
-                    component instanceof JLabel
-                    && ((JLabel) component)
-                    .getFont()
-                    .getSize() >= 40
-            ) {
-
-                return (JLabel) component;
-            }
-        }
-
-        return null;
-    }
-
-
-    // =====================================================
-    // LOAD STATISTICS FROM DATABASE
-    // =====================================================
-
-    private void loadDashboardStatistics() {
-
-        int patients =
-                dashboardDAO
-                        .getTotalPatients();
-
-        int doctors =
-                dashboardDAO
-                        .getTotalDoctors();
-
-        int appointments =
-                dashboardDAO
-                        .getTotalAppointments();
-
-        int pending =
-                dashboardDAO
-                        .getPendingAppointments();
-
-
-        if (patientCountLabel != null) {
-
-            patientCountLabel.setText(
-                    String.valueOf(patients)
-            );
-        }
-
-
-        if (doctorCountLabel != null) {
-
-            doctorCountLabel.setText(
-                    String.valueOf(doctors)
-            );
-        }
-
-
-        if (appointmentCountLabel != null) {
-
-            appointmentCountLabel.setText(
-                    String.valueOf(appointments)
-            );
-        }
-
-
-        if (pendingCountLabel != null) {
-
-            pendingCountLabel.setText(
-                    String.valueOf(pending)
-            );
+    private void navigate(String page) {
+        switch (page) {
+            case "Dashboard" -> refreshStatistics();
+            case "Patients" -> openModule("Patient Management", PatientPanel::new);
+            case "Doctors" -> openModule("Doctor Management", DoctorPanel::new);
+            case "Appointments" -> openModule("Appointment Management", AppointmentPanel::new);
+            default -> { }
         }
     }
 
-
-    // =====================================================
-    // MENU BUTTON
-    // =====================================================
-
-    private JButton createMenuButton(
-            String text) {
-
-        JButton button =
-                new JButton(text);
-
-        button.setFont(
-                new Font(
-                        "Arial",
-                        Font.BOLD,
-                        15
-                )
-        );
-
-        button.setForeground(
-                WHITE
-        );
-
-        button.setBackground(
-                SECONDARY
-        );
-
-        button.setHorizontalAlignment(
-                SwingConstants.LEFT
-        );
-
-        button.setFocusPainted(
-                false
-        );
-
-        button.setBorder(
-                BorderFactory.createEmptyBorder(
-                        14,
-                        20,
-                        14,
-                        10
-                )
-        );
-
-        button.setMaximumSize(
-                new Dimension(
-                        230,
-                        55
-                )
-        );
-
-        button.setAlignmentX(
-                Component.LEFT_ALIGNMENT
-        );
-
-        return button;
-    }
-
-
-    // =====================================================
-    // PATIENT PANEL
-    // =====================================================
-
-    private void openPatientPanel() {
-
+    private void refreshStatistics() {
         try {
-
-            new PatientPanel();
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Unable to open Patient Management.\n\n"
-                            + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
+            patientCard.setValue(String.valueOf(dashboardDAO.getTotalPatients()));
+            doctorCard.setValue(String.valueOf(dashboardDAO.getTotalDoctors()));
+            appointmentCard.setValue(String.valueOf(dashboardDAO.getTotalAppointments()));
+            pendingCard.setValue(String.valueOf(dashboardDAO.getPendingAppointments()));
+        } catch (RuntimeException exception) {
+            showFriendlyError("Unable to load dashboard information. Verify that MySQL is running.");
         }
     }
 
-
-    // =====================================================
-    // DOCTOR PANEL
-    // =====================================================
-
-    private void openDoctorPanel() {
-
+    private void openModule(String title, Runnable opener) {
         try {
-
-            new DoctorPanel();
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Unable to open Doctor Management.\n\n"
-                            + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
+            opener.run();
+        } catch (RuntimeException exception) {
+            showFriendlyError("Unable to open " + title + ".");
         }
     }
 
-
-    // =====================================================
-    // APPOINTMENT PANEL
-    // =====================================================
-
-    private void openAppointmentPanel() {
-
-        try {
-
-            new AppointmentPanel();
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Unable to open Appointment Management.\n\n"
-                            + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+    private void showFriendlyError(String message) {
+        JOptionPane.showMessageDialog(this, message, "Hospital Management System", JOptionPane.ERROR_MESSAGE);
     }
-
-
-    // =====================================================
-    // LOGOUT
-    // =====================================================
 
     private void logout() {
-
-        int result =
-                JOptionPane.showConfirmDialog(
-                        this,
-                        "Are you sure you want to logout?",
-                        "Logout",
-                        JOptionPane.YES_NO_OPTION
-                );
-
-
-        if (
-                result != JOptionPane.YES_OPTION
-        ) {
-
-            return;
+        int result = JOptionPane.showConfirmDialog(this, "Are you sure you want to sign out?",
+                "Sign out", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+        if (result == JOptionPane.YES_OPTION) {
+            dispose();
+            SwingUtilities.invokeLater(LoginFrame::new);
         }
-
-
-        dispose();
-
-
-        SwingUtilities.invokeLater(
-                () -> {
-
-                    try {
-
-                        new LoginFrame();
-
-                    } catch (Exception e) {
-
-                        e.printStackTrace();
-
-                        JOptionPane.showMessageDialog(
-                                null,
-                                "Unable to open Login screen.\n\n"
-                                        + e.getMessage(),
-                                "Error",
-                                JOptionPane.ERROR_MESSAGE
-                        );
-                    }
-                }
-        );
     }
 
-
-    // =====================================================
-    // MAIN
-    // =====================================================
-
-    public static void main(
-            String[] args) {
-
-        SwingUtilities.invokeLater(
-                () -> new AdminDashboard()
-        );
+    public static void main(String[] args) {
+        AppTheme.install();
+        SwingUtilities.invokeLater(AdminDashboard::new);
     }
 }
