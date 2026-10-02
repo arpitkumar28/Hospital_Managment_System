@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ArrowUpRight, Github, Plus } from 'lucide-react';
-import { repositoryUrl, routes, technology } from '@/lib/site-data';
+import { repositoryUrl, routes } from '@/lib/site-data';
 
 export function Footer() {
   const quickLinks = routes.filter(({ href }) => ['/product', '/features', '/modules', '/screenshots', '/security'].includes(href));
@@ -12,7 +12,7 @@ export function Footer() {
         <a href={repositoryUrl} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 text-xs font-semibold text-teal-300 hover:text-white"><Github size={15} aria-hidden="true" /> GitHub <ArrowUpRight size={13} aria-hidden="true" /></a>
       </div>
       <div><h2 className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-500">Explore</h2><ul className="mt-4 grid gap-3">{quickLinks.map((item) => <li key={item.href}><Link href={item.href} className="text-xs text-slate-300 hover:text-teal-200">{item.label}</Link></li>)}</ul></div>
-      <div><h2 className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-500">Technology</h2><ul className="mt-4 grid gap-3">{technology.slice(0, 6).map((item) => <li key={item.name} className="flex items-center justify-between gap-3 text-xs text-slate-300"><span>{item.name}</span><span className="text-[9px] text-slate-500">{item.kind === 'target' ? 'Target' : 'Desktop'}</span></li>)}</ul></div>
+      <div><h2 className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-500">Technology</h2><ul className="mt-4 grid gap-3 text-xs text-slate-300">{['Java','Swing','PostgreSQL','Supabase','Next.js','Vercel'].map((item)=><li key={item}>{item}</li>)}</ul></div>
       <div><h2 className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-500">Resources</h2><ul className="mt-4 grid gap-3">{routes.filter(({href})=>['/docs','/architecture','/database','/download','/contact'].includes(href)).map(({href,label})=><li key={href}><Link href={href} className="text-xs text-slate-300 hover:text-teal-200">{label}</Link></li>)}</ul></div>
     </div>
     <div className="border-t border-white/10"><div className="mx-auto flex max-w-[1280px] flex-col gap-2 px-6 py-5 text-[10px] text-slate-500 sm:flex-row sm:items-center sm:justify-between lg:px-10"><span>© 2026 Hospital Management System</span><span>Product application: Java desktop · Website: Next.js</span></div></div>
