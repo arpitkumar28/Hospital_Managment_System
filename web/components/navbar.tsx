@@ -15,7 +15,7 @@ export function Navbar() {
       <div className="mx-auto flex h-[76px] max-w-[1360px] items-center justify-between gap-5 px-5 sm:px-8 xl:px-12">
         <Link href="/" aria-label="Hospital Management System home" className="flex shrink-0 items-center gap-3">
           <span className="grid size-10 place-items-center rounded-xl bg-teal-50 text-teal-700 ring-1 ring-teal-100"><Plus size={24} strokeWidth={2.5} aria-hidden="true" /></span>
-          <span className="flex flex-col"><strong className="text-[15px] font-bold tracking-[-.04em] text-slate-900">Hospital Management</strong><small className="mt-0.5 text-[8px] font-bold tracking-[.16em] text-slate-500">SYSTEM PROJECT</small></span>
+          <span className="flex flex-col"><strong className="text-[15px] font-bold tracking-[-.04em] text-slate-900">Hospital Management</strong><small className="mt-0.5 text-[8px] font-bold tracking-[.12em] text-slate-500">Healthcare Operations Platform</small></span>
         </Link>
 
         <nav aria-label="Main navigation" className="hidden items-center gap-3 lg:flex xl:gap-4">
@@ -26,6 +26,7 @@ export function Navbar() {
           <Link href="/docs" className="hidden text-[11px] font-semibold text-slate-600 transition hover:text-teal-700 xl:inline-flex">Documentation</Link>
           <a href={repositoryUrl} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-[11px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"><Github size={15} aria-hidden="true" /> GitHub</a>
           <Link href="/contact" className="inline-flex h-10 items-center gap-2 rounded-lg bg-teal-700 px-3.5 text-[11px] font-semibold text-white shadow-sm transition hover:bg-teal-800">Request demo <ArrowRight size={14} aria-hidden="true" /></Link>
+          <Link href="/download" className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-[11px] font-semibold text-slate-700 transition hover:border-teal-300 hover:text-teal-800">Download</Link>
         </div>
 
         <button type="button" className="grid size-10 place-items-center rounded-lg border border-slate-200 text-slate-700 lg:hidden" aria-label={open ? 'Close navigation menu' : 'Open navigation menu'} aria-expanded={open} aria-controls="mobile-navigation" onClick={() => setOpen((value) => !value)}>
