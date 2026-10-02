@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import security.PasswordUtil;
 import security.AuthorizationService;
 import security.SessionManager;
+import util.ValidationUtil;
 
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -45,6 +46,47 @@ public class AdminUserService {
             requireAuditRecorded(actor.userId(), "PENDING_USERS_VIEWED");
             return pending;
         } catch (SQLException exception) { throw databaseError("Unable to load pending accounts.", exception); }
+    }
+
+    public List<StaffAccountSummary> listUsers() throws AdminOperationException {
+        AuthenticatedUser actor = requireAdmin();
+        try {
+            List<StaffAccountSummary> accounts = users.findAllUsers();
+            requireAuditRecorded(actor.userId(), "USER_LIST_VIEWED");
+            return accounts;
+        } catch (SQLException exception) { throw databaseError("Unable to load user accounts.", exception); }
+    }
+
+    public long createUser(String fullName, String username, String email, String phone, UserRole role,
+                           char[] password, char[] confirmation) throws AdminOperationException {
+        try {
+            AuthenticatedUser actor = requireAdmin();
+            if (role == null || role == UserRole.ADMIN) {
+                throw new AdminOperationException("Choose Receptionist, Doctor, or Accountant.");
+            }
+            List<String> errors = ValidationUtil.validateRegistration(fullName, username, email, phone,
+                    password, confirmation);
+            if (!errors.isEmpty()) throw new AdminOperationException(String.join("\n", errors));
+            String normalizedUsername = username.trim();
+            String normalizedEmail = email.trim();
+            if (users.existsByUsername(normalizedUsername)) {
+                throw new AdminOperationException("That username is already in use.");
+            }
+            if (users.existsByEmail(normalizedEmail)) {
+                throw new AdminOperationException("That email address is already registered.");
+            }
+            String hash = PasswordUtil.hashPassword(password);
+            return users.createManagedUser(fullName.trim(), normalizedUsername, normalizedEmail,
+                    phone.trim(), hash, role, actor.userId());
+        } catch (SQLException exception) {
+            if ("23505".equals(exception.getSQLState())) {
+                throw new AdminOperationException("That username or email address is already registered.");
+            }
+            throw databaseError("Unable to create the account.", exception);
+        } finally {
+            if (password != null) Arrays.fill(password, '\0');
+            if (confirmation != null) Arrays.fill(confirmation, '\0');
+        }
     }
 
     public void approve(long userId, UserRole role) throws AdminOperationException {
@@ -102,6 +144,10 @@ public class AdminUserService {
 
     private void changeStatus(long userId, UserStatus status, String event) throws AdminOperationException {
         AuthenticatedUser actor = requireAdmin();
+        if (actor.userId() == userId && actor.role() == UserRole.ADMIN
+                && (status == UserStatus.INACTIVE || status == UserStatus.LOCKED)) {
+            throw new AdminOperationException("You cannot deactivate or lock your own active administrator account.");
+        }
         try {
             if (!users.changeStatus(userId, status, actor.userId())) {
                 throw new AdminOperationException("The account status could not be changed. Ensure another active administrator exists.");

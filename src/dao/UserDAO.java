@@ -195,6 +195,63 @@ public class UserDAO {
         return List.copyOf(pending);
     }
 
+    /** Returns non-secret account fields for the administrator user table. */
+    public List<StaffAccountSummary> findAllUsers() throws SQLException {
+        String sql = "SELECT user_id, username, email, full_name, phone, role, status, created_at, last_login "
+                + "FROM users ORDER BY full_name, user_id";
+        List<StaffAccountSummary> accounts = new ArrayList<>();
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet result = statement.executeQuery()) {
+            while (result.next()) accounts.add(new StaffAccountSummary(result.getLong("user_id"),
+                    result.getString("username"), result.getString("email"), result.getString("full_name"),
+                    result.getString("phone"), UserRole.fromDatabase(result.getString("role")),
+                    UserStatus.valueOf(result.getString("status")), result.getTimestamp("created_at").toInstant(),
+                    result.getTimestamp("last_login") == null ? null : result.getTimestamp("last_login").toInstant()));
+        }
+        return List.copyOf(accounts);
+    }
+
+    /** Creates an administrator-managed staff account and records its audit event atomically. */
+    public long createManagedUser(String fullName, String username, String email, String phone,
+                                  String passwordHash, UserRole role, long actorId) throws SQLException {
+        String sql = "INSERT INTO users (username, email, password_hash, full_name, phone, role, status, created_by) "
+                + "VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', ?) RETURNING user_id";
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                long id;
+                try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                    statement.setString(1, username.trim());
+                    statement.setString(2, email.trim().toLowerCase(java.util.Locale.ROOT));
+                    statement.setString(3, passwordHash);
+                    statement.setString(4, fullName.trim());
+                    statement.setString(5, phone.trim());
+                    statement.setString(6, role.name());
+                    statement.setLong(7, actorId);
+                    try (ResultSet result = statement.executeQuery()) {
+                        if (!result.next()) throw new SQLException("Managed account was not created.");
+                        id = result.getLong(1);
+                    }
+                }
+                try (PreparedStatement event = connection.prepareStatement(
+                        "INSERT INTO audit_logs (user_id, event_type) VALUES (?, 'USER_CREATED')")) {
+                    event.setLong(1, actorId);
+                    event.executeUpdate();
+                }
+                connection.commit();
+                return id;
+            } catch (SQLException exception) {
+                try { connection.rollback(); } catch (SQLException rollback) { exception.addSuppressed(rollback); }
+                throw exception;
+            } finally {
+                try { connection.setAutoCommit(true); } catch (SQLException exception) {
+                    LOGGER.warn("Unable to reset managed account connection state.", exception);
+                }
+            }
+        }
+    }
+
     public boolean updateRole(long userId, UserRole role, long actorId) throws SQLException {
         String sql = "UPDATE users SET role = ?, updated_by = ?, updated_at = CURRENT_TIMESTAMP "
                 + "WHERE user_id = ? AND NOT (role = 'ADMIN' AND ? <> 'ADMIN' AND NOT EXISTS "
