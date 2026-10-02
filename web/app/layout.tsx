@@ -5,22 +5,22 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Hospital Management System | Arya College Jaipur',
+    default: 'Hospital Management System | Healthcare Operations Platform',
     template: '%s | Hospital Management System',
   },
-  description: 'A Java Swing hospital management project for Arya College of Engineering & I.T., Kukas, Jaipur. Explore modules, architecture, database and project progress.',
-  applicationName: 'Hospital Management System Project',
+  description: 'Professional hospital management software for managing patients, doctors, appointments, admissions, beds, billing and payments.',
+  applicationName: 'Hospital Management System',
   openGraph: {
     type: 'website',
-    siteName: 'Hospital Management System Project',
-    title: 'Hospital Management System | Arya College Jaipur',
-    description: 'A Java desktop hospital management project and its technical architecture.',
+    siteName: 'Hospital Management System',
+    title: 'Hospital Management System | Healthcare Operations Platform',
+    description: 'Professional hospital operations software for connected patient, clinical, administrative and financial workflows.',
   },
   icons: { icon: '/favicon.svg' },
   twitter: {
     card: 'summary_large_image',
-    title: 'Hospital Management System | Arya College Jaipur',
-    description: 'A Java desktop hospital management project and its technical architecture.',
+    title: 'Hospital Management System | Healthcare Operations Platform',
+    description: 'Professional hospital operations software for connected hospital workflows.',
   },
 };
 

@@ -5,7 +5,7 @@ import { DatabaseDiagram } from '@/components/database-diagram';
 import { PageIntro, SectionHeading } from '@/components/page-intro';
 import { StatusPill } from '@/components/status-pill';
 
-export const metadata: Metadata = { title: 'Database architecture', description: 'The current MySQL baseline, PostgreSQL and Supabase migration target, conceptual relationships and data-safety approach.' };
+export const metadata: Metadata = { title: 'Database', description: 'Explore the Hospital Management System relational database model, PostgreSQL target and data-integrity approach.' };
 
 const principles = [
   [Database,'Standard PostgreSQL','Use the PostgreSQL JDBC driver and plain SQL/JDBC. Supabase is an intended managed PostgreSQL option, not a separate REST client.'],
@@ -15,8 +15,8 @@ const principles = [
 ];
 
 export default function DatabasePage() {
-  return <main id="main"><PageIntro eyebrow="DATABASE & DATA MODEL" title="Portable data. Carefully planned migration." description="PostgreSQL is the intended target, with Supabase as one managed-hosting option. The current Java baseline still uses local MySQL; no cloud connection has been verified." />
-    <section className="mx-auto max-w-[1280px] px-6 py-12 sm:py-16 lg:px-10"><div className="mb-7 grid gap-3 md:grid-cols-3"><StatusCard icon={CircleAlert} label="CURRENT BASELINE" title="Local MySQL" detail="Connection URL and username are fixed in source." status="Existing screens"/><StatusCard icon={Database} label="MIGRATION TARGET" title="PostgreSQL / Supabase" detail="A schema draft exists; source dump comparison is still required." status="Not verified"/><StatusCard icon={ShieldCheck} label="PUBLIC WEBSITE" title="No database access" detail="This Next.js project makes no hospital-data connection." status="Separate site"/></div><DatabaseDiagram />
+  return <main id="main"><PageIntro eyebrow="DATABASE & DATA MODEL" title="A relational foundation for hospital workflows." description="The target database is PostgreSQL, with Supabase as a managed PostgreSQL option. The application currently uses MySQL; PostgreSQL connectivity has not yet been verified." />
+    <section className="mx-auto max-w-[1280px] px-6 py-12 sm:py-16 lg:px-10"><div className="mb-7 grid gap-3 md:grid-cols-3"><StatusCard icon={CircleAlert} label="CURRENT CONNECTION" title="MySQL" detail="The desktop application is configured for a local MySQL database." status="Available"/><StatusCard icon={Database} label="DATABASE TARGET" title="PostgreSQL / Supabase" detail="A schema foundation exists and requires source database comparison." status="Not verified"/><StatusCard icon={ShieldCheck} label="PUBLIC WEBSITE" title="No database access" detail="This Next.js site has no hospital data connection." status="Separate site"/></div><DatabaseDiagram />
       <div className="mt-12"><SectionHeading eyebrow="DATABASE PRINCIPLES" title="Make each data boundary deliberate."/><div className="grid gap-4 sm:grid-cols-2">{principles.map(([Icon,title,body])=>{const Glyph=Icon as typeof Database;return <article key={String(title)} className="rounded-2xl border border-slate-200 p-5"><span className="grid size-9 place-items-center rounded-lg bg-sky-50 text-sky-800"><Glyph size={17} aria-hidden="true"/></span><h2 className="mt-4 text-sm font-bold text-slate-950">{String(title)}</h2><p className="mt-2 text-[11px] leading-6 text-slate-600">{String(body)}</p></article>;})}</div></div>
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-950 p-5 text-white sm:p-6"><span><b className="block text-sm">Review the migration foundation</b><small className="mt-1 block text-[10px] text-slate-300">The authoritative MySQL dump is not in the current checkout.</small></span><Link href="/docs" className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-[10px] font-bold text-slate-900">Database notes <ArrowRight size={13}/></Link></div>
     </section></main>;

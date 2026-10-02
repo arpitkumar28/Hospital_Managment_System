@@ -3,18 +3,18 @@ import { ArrowUpRight, Github, Plus } from 'lucide-react';
 import { repositoryUrl, routes, technology } from '@/lib/site-data';
 
 export function Footer() {
-  const quickLinks = routes.filter(({ href }) => ['/features', '/modules', '/architecture', '/security', '/docs', '/team'].includes(href));
+  const quickLinks = routes.filter(({ href }) => ['/product', '/features', '/modules', '/screenshots', '/security'].includes(href));
   return <footer className="border-t border-slate-200 bg-slate-950 text-slate-300">
     <div className="mx-auto grid max-w-[1280px] gap-10 px-6 py-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr] lg:gap-14 lg:px-10 lg:py-16">
       <div>
         <Link href="/" className="flex items-center gap-3 text-white"><span className="grid size-10 place-items-center rounded-xl bg-teal-700"><Plus size={22} strokeWidth={2.6} aria-hidden="true" /></span><span className="text-sm font-bold tracking-tight">Hospital Management System</span></Link>
-        <p className="mt-5 max-w-xs text-xs leading-6 text-slate-400">A Java desktop project for learning how hospital operations can share one connected workflow.</p>
-        <a href={repositoryUrl} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 text-xs font-semibold text-teal-300 hover:text-white"><Github size={15} aria-hidden="true" /> Project repository <ArrowUpRight size={13} aria-hidden="true" /></a>
+        <p className="mt-5 max-w-xs text-xs leading-6 text-slate-400">A desktop hospital operations platform for connected patient, clinical, administrative and financial workflows.</p>
+        <a href={repositoryUrl} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 text-xs font-semibold text-teal-300 hover:text-white"><Github size={15} aria-hidden="true" /> GitHub <ArrowUpRight size={13} aria-hidden="true" /></a>
       </div>
       <div><h2 className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-500">Explore</h2><ul className="mt-4 grid gap-3">{quickLinks.map((item) => <li key={item.href}><Link href={item.href} className="text-xs text-slate-300 hover:text-teal-200">{item.label}</Link></li>)}</ul></div>
       <div><h2 className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-500">Technology</h2><ul className="mt-4 grid gap-3">{technology.slice(0, 6).map((item) => <li key={item.name} className="flex items-center justify-between gap-3 text-xs text-slate-300"><span>{item.name}</span><span className="text-[9px] text-slate-500">{item.kind === 'target' ? 'Target' : 'Desktop'}</span></li>)}</ul></div>
-      <div><h2 className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-500">Project</h2><p className="mt-4 text-xs leading-6 text-slate-300">Arya College of Engineering &amp; I.T.<br />Kukas, Jaipur · 5th Semester<br />Academic year 2026–27</p><Link href="/contact" className="mt-4 inline-block text-xs font-semibold text-teal-300 hover:text-white">Project information →</Link></div>
+      <div><h2 className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-500">Resources</h2><ul className="mt-4 grid gap-3">{routes.filter(({href})=>['/docs','/architecture','/database','/download','/contact'].includes(href)).map(({href,label})=><li key={href}><Link href={href} className="text-xs text-slate-300 hover:text-teal-200">{label}</Link></li>)}</ul></div>
     </div>
-    <div className="border-t border-white/10"><div className="mx-auto flex max-w-[1280px] flex-col gap-2 px-6 py-5 text-[10px] text-slate-500 sm:flex-row sm:items-center sm:justify-between lg:px-10"><span>© 2026 Hospital Management System · Academic project</span><span>Vercel hosts this project site. Hospital workflows remain in the Java desktop app.</span></div></div>
+    <div className="border-t border-white/10"><div className="mx-auto flex max-w-[1280px] flex-col gap-2 px-6 py-5 text-[10px] text-slate-500 sm:flex-row sm:items-center sm:justify-between lg:px-10"><span>© 2026 Hospital Management System</span><span>Product application: Java desktop · Website: Next.js</span></div></div>
   </footer>;
 }
