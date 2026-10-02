@@ -1,0 +1,3 @@
+-- No default users or credentials are seeded.
+-- Provision the first administrator through the secure bootstrap flow described
+-- in database/README.md after that flow is implemented and reviewed.

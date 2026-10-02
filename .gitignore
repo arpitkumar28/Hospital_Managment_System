@@ -12,6 +12,11 @@
 # Build
 bin/
 target/
+web/node_modules/
+web/dist/
+web/.next/
+web/out/
+.vercel/
 backup/
 
 # IDE
@@ -19,3 +24,11 @@ backup/
 
 # Secrets
 .env
+.env.*
+!.env.example
+*.dump
+*.sql.gz
+*.mysql
+*.pem
+*.key
+*.p12
