@@ -8,20 +8,33 @@
     <artifactId>hospital-management-system</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <name>HospitalManagementSystem</name>
-    <description>Java Swing hospital management application backed by MySQL and JDBC.</description>
+    <description>Java Swing hospital management application backed by PostgreSQL and JDBC.</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>17</maven.compiler.release>
         <junit.version>5.11.4</junit.version>
         <slf4j.version>2.0.16</slf4j.version>
+        <postgresql.version>42.7.13</postgresql.version>
+        <hikaricp.version>7.1.0</hikaricp.version>
+        <logback.version>1.6.5</logback.version>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
-            <version>9.2.0</version>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgresql.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>${hikaricp.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mindrot</groupId>
+            <artifactId>jbcrypt</artifactId>
+            <version>0.4</version>
         </dependency>
         <dependency>
             <groupId>com.formdev</groupId>
@@ -34,9 +47,9 @@
             <version>${slf4j.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>${slf4j.version}</version>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
@@ -50,6 +63,7 @@
     <build>
         <!-- Preserve the existing Eclipse source layout during Phase 1. -->
         <sourceDirectory>src</sourceDirectory>
+        <testSourceDirectory>test</testSourceDirectory>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

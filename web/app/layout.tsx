@@ -5,28 +5,23 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Hospital Management System | Healthcare Operations Platform',
+    default: 'Hospital Management System | Java Desktop Application',
     template: '%s | Hospital Management System',
   },
-  description: 'Professional hospital management software for managing patients, doctors, appointments, admissions, beds, billing and payments.',
+  description: 'A Java desktop Hospital Management System product, currently under development.',
   applicationName: 'Hospital Management System',
   openGraph: {
     type: 'website',
     siteName: 'Hospital Management System',
-    title: 'Hospital Management System | Healthcare Operations Platform',
-    description: 'Professional hospital operations software for connected patient, clinical, administrative and financial workflows.',
+    title: 'Hospital Management System | Java Desktop Application',
+    description: 'A Java desktop Hospital Management System product, currently under development.',
   },
   icons: { icon: '/favicon.svg' },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Hospital Management System | Healthcare Operations Platform',
-    description: 'Professional hospital operations software for connected hospital workflows.',
-  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body>
         <a className="skip-link" href="#main">Skip to content</a>
         <Navbar />

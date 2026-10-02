@@ -37,7 +37,10 @@ psql -v ON_ERROR_STOP=1 -d hospital_management -f database/schema.sql
 
 Do not run this against an existing database. The migration is intentionally
 one-time DDL and will fail if its tables already exist. `seed.sql` contains no
-demo account or password; the initial-admin workflow is not implemented yet.
+demo account or password. Create an initial active administrator through a
+separately controlled provisioning workflow before approving registration
+requests. Self-registration deliberately creates only `RECEPTIONIST` accounts
+in `PENDING` status; it never grants administrator privileges.
 
 ## Required before data migration
 

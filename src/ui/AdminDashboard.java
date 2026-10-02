@@ -1,6 +1,11 @@
 package ui;
 
 import dao.DashboardDAO;
+import model.AuthenticatedUser;
+import model.UserRole;
+import security.AuthorizationService;
+import security.SessionManager;
+import service.AuthService;
 import ui.components.AppHeader;
 import ui.components.AppSidebar;
 import ui.components.StatCard;
@@ -19,13 +24,24 @@ import java.awt.Dimension;
 /** Main administrative shell and database-backed operational overview. */
 public class AdminDashboard extends JFrame {
     private final DashboardDAO dashboardDAO = new DashboardDAO();
+    private final AuthenticatedUser currentUser;
+    private final AuthorizationService authorization = new AuthorizationService();
+    private final AuthService authService = new AuthService();
     private final StatCard patientCard = new StatCard("Total patients", "—", AppTheme.INFO_COLOR);
     private final StatCard doctorCard = new StatCard("Total doctors", "—", AppTheme.SECONDARY_COLOR);
     private final StatCard appointmentCard = new StatCard("Appointments", "—", AppTheme.ACCENT_COLOR);
     private final StatCard pendingCard = new StatCard("Pending appointments", "—", AppTheme.WARNING_COLOR);
 
+    /** @deprecated Start the dashboard only after authenticating a staff user. */
+    @Deprecated
     public AdminDashboard() {
+        this(SessionManager.INSTANCE.getCurrentUser().orElseThrow(
+                () -> new IllegalStateException("Sign-in is required.")));
+    }
+
+    public AdminDashboard(AuthenticatedUser currentUser) {
         super("Hospital Management System");
+        this.currentUser = java.util.Objects.requireNonNull(currentUser);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setMinimumSize(new Dimension(1000, 680));
         setSize(1240, 780);
@@ -43,7 +59,7 @@ public class AdminDashboard extends JFrame {
         body.add(createSidebar(), BorderLayout.WEST);
         body.add(createDashboardContent(), BorderLayout.CENTER);
 
-        root.add(new AppHeader("Hospital Management System", "Administrator", "ADMIN"), BorderLayout.NORTH);
+        root.add(new AppHeader("Hospital Management System", currentUser.fullName(), currentUser.role().name()), BorderLayout.NORTH);
         root.add(body, BorderLayout.CENTER);
         setContentPane(root);
     }
@@ -51,11 +67,15 @@ public class AdminDashboard extends JFrame {
     private AppSidebar createSidebar() {
         AppSidebar sidebar = new AppSidebar(this::navigate, this::logout);
         sidebar.addNavigationItem("Dashboard");
-        sidebar.addNavigationItem("Patients");
-        sidebar.addNavigationItem("Doctors");
-        sidebar.addNavigationItem("Appointments");
+        addIfAuthorized(sidebar, "Patients");
+        addIfAuthorized(sidebar, "Doctors");
+        addIfAuthorized(sidebar, "Appointments");
         sidebar.setSelected("Dashboard");
         return sidebar;
+    }
+
+    private void addIfAuthorized(AppSidebar sidebar, String module) {
+        if (authorization.canAccessModule(currentUser.role(), module)) sidebar.addNavigationItem(module);
     }
 
     private JPanel createDashboardContent() {
@@ -92,6 +112,10 @@ public class AdminDashboard extends JFrame {
     }
 
     private void navigate(String page) {
+        if (!authorization.canAccessModule(currentUser.role(), page)) {
+            showFriendlyError("Your account does not have access to this area.");
+            return;
+        }
         switch (page) {
             case "Dashboard" -> refreshStatistics();
             case "Patients" -> openModule("Patient Management", PatientPanel::new);
@@ -102,13 +126,20 @@ public class AdminDashboard extends JFrame {
     }
 
     private void refreshStatistics() {
+        if (currentUser.role() != UserRole.ADMIN) {
+            patientCard.setValue("—");
+            doctorCard.setValue("—");
+            appointmentCard.setValue("—");
+            pendingCard.setValue("—");
+            return;
+        }
         try {
             patientCard.setValue(String.valueOf(dashboardDAO.getTotalPatients()));
             doctorCard.setValue(String.valueOf(dashboardDAO.getTotalDoctors()));
             appointmentCard.setValue(String.valueOf(dashboardDAO.getTotalAppointments()));
             pendingCard.setValue(String.valueOf(dashboardDAO.getPendingAppointments()));
         } catch (RuntimeException exception) {
-            showFriendlyError("Unable to load dashboard information. Verify that MySQL is running.");
+            showFriendlyError("Unable to load dashboard information. Verify the PostgreSQL connection settings.");
         }
     }
 
@@ -128,6 +159,7 @@ public class AdminDashboard extends JFrame {
         int result = JOptionPane.showConfirmDialog(this, "Are you sure you want to sign out?",
                 "Sign out", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
         if (result == JOptionPane.YES_OPTION) {
+            authService.logout();
             dispose();
             SwingUtilities.invokeLater(LoginFrame::new);
         }
@@ -135,6 +167,6 @@ public class AdminDashboard extends JFrame {
 
     public static void main(String[] args) {
         AppTheme.install();
-        SwingUtilities.invokeLater(AdminDashboard::new);
+        SwingUtilities.invokeLater(LoginFrame::new);
     }
 }
