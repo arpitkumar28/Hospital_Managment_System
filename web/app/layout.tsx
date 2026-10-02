@@ -17,16 +17,11 @@ export const metadata: Metadata = {
     description: 'Professional hospital operations software for connected patient, clinical, administrative and financial workflows.',
   },
   icons: { icon: '/favicon.svg' },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Hospital Management System | Healthcare Operations Platform',
-    description: 'Professional hospital operations software for connected hospital workflows.',
-  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body>
         <a className="skip-link" href="#main">Skip to content</a>
         <Navbar />
