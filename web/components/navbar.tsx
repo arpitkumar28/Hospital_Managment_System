@@ -23,7 +23,6 @@ export function Navbar() {
         </nav>
 
         <div className="hidden shrink-0 items-center gap-2 lg:flex">
-          <Link href="/docs" className="hidden text-[11px] font-semibold text-slate-600 transition hover:text-teal-700 xl:inline-flex">Documentation</Link>
           <a href={repositoryUrl} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-[11px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"><Github size={15} aria-hidden="true" /> GitHub</a>
           <Link href="/docs" className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-[11px] font-semibold text-slate-700 transition hover:border-teal-300 hover:text-teal-800">Documentation</Link>
         </div>

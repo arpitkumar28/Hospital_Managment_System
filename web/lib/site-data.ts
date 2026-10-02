@@ -9,6 +9,8 @@ export const routes = [
   { label: 'Security', href: '/security' },
   { label: 'Architecture', href: '/architecture' },
   { label: 'Documentation', href: '/docs' },
+  { label: 'About', href: '/team' },
+  { label: 'Availability', href: '/download' },
   { label: 'Contact', href: '/contact' },
 ] as const;
 
