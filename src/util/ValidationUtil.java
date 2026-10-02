@@ -40,6 +40,20 @@ public final class ValidationUtil {
                 && password != null && password.length > 0;
     }
 
+    public static List<String> validateInitialAdministrator(String username, String email, char[] password) {
+        List<String> errors = new ArrayList<>();
+        if (username == null || !USERNAME.matcher(username.trim()).matches()) {
+            errors.add("Username must be 3–80 characters using letters, numbers, dots, underscores or hyphens.");
+        }
+        if (email == null || email.length() > 254 || !EMAIL.matcher(email.trim()).matches()) {
+            errors.add("Enter a valid email address.");
+        }
+        if (!isStrongPassword(password)) {
+            errors.add("Password must be at least 8 characters and include uppercase, lowercase, a number and a special character.");
+        }
+        return List.copyOf(errors);
+    }
+
     public static boolean isStrongPassword(char[] password) {
         if (password == null || password.length < 8) return false;
         boolean upper = false, lower = false, number = false, special = false;

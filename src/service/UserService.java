@@ -1,6 +1,5 @@
 package service;
 
-import dao.AuditDAO;
 import dao.UserDAO;
 import model.UserRole;
 import model.UserStatus;
@@ -17,13 +16,11 @@ import java.util.List;
 public class UserService {
     private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
     private final UserDAO users;
-    private final AuditDAO audit;
 
-    public UserService() { this(new UserDAO(), new AuditDAO()); }
+    public UserService() { this(new UserDAO()); }
 
-    public UserService(UserDAO users, AuditDAO audit) {
+    public UserService(UserDAO users) {
         this.users = users;
-        this.audit = audit;
     }
 
     public void register(String fullName, String username, String email, String phone,
@@ -39,15 +36,14 @@ public class UserService {
                 throw new RegistrationException("That email address is already in use.");
             }
             String passwordHash = PasswordUtil.hashPassword(password);
-            long id = users.createUser(fullName.trim(), username.trim(), email.trim(), phone.trim(),
+            users.createUser(fullName.trim(), username.trim(), email.trim(), phone.trim(),
                     passwordHash, UserRole.RECEPTIONIST, UserStatus.PENDING);
-            audit.recordEvent(id, "ACCOUNT_REGISTRATION_SUBMITTED");
         } catch (SQLException exception) {
             if ("23505".equals(exception.getSQLState())) {
                 throw new RegistrationException("That username or email address is already in use.");
             }
             LOGGER.error("Account registration operation failed.", exception);
-            throw new RegistrationException("Unable to submit registration. Check the database connection and try again.");
+            throw new RegistrationException("Unable to connect to the hospital database.");
         } finally {
             if (password != null) Arrays.fill(password, '\0');
             if (confirmation != null) Arrays.fill(confirmation, '\0');

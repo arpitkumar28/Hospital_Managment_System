@@ -1,6 +1,8 @@
 package ui;
 
-import dao.BillDAO;
+import service.BillingService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -11,6 +13,7 @@ import java.awt.event.MouseEvent;
 import java.util.List;
 
 public class BillingPanel extends JFrame {
+    private static final Logger LOGGER = LoggerFactory.getLogger(BillingPanel.class);
 
     private JTextField billIdField;
     private JTextField patientIdField;
@@ -29,7 +32,7 @@ public class BillingPanel extends JFrame {
     private JTable billTable;
     private DefaultTableModel tableModel;
 
-    private final BillDAO billDAO = new BillDAO();
+    private final BillingService billingService = new BillingService();
 
     public BillingPanel() {
 
@@ -676,7 +679,7 @@ public class BillingPanel extends JFrame {
             }
 
             boolean success =
-                    billDAO.addBill(
+                    billingService.addBill(
                             patientId,
                             admissionId,
                             room,
@@ -719,9 +722,11 @@ public class BillingPanel extends JFrame {
 
         } catch (Exception e) {
 
+            LOGGER.error("Unable to save bill.", e);
+
             JOptionPane.showMessageDialog(
                     this,
-                    e.getMessage(),
+                    "Unable to save the bill. Verify the details and database connection.",
                     "Error",
                     JOptionPane.ERROR_MESSAGE
             );
@@ -807,7 +812,7 @@ public class BillingPanel extends JFrame {
             }
 
             boolean success =
-                    billDAO.updateBill(
+                    billingService.updateBill(
                             billId,
                             patientId,
                             admissionId,
@@ -851,9 +856,11 @@ public class BillingPanel extends JFrame {
 
         } catch (Exception e) {
 
+            LOGGER.error("Unable to update bill.", e);
+
             JOptionPane.showMessageDialog(
                     this,
-                    e.getMessage(),
+                    "Unable to update the bill. Verify the details and database connection.",
                     "Error",
                     JOptionPane.ERROR_MESSAGE
             );
@@ -876,7 +883,7 @@ public class BillingPanel extends JFrame {
 
             // Get latest bill information
             Object[] bill =
-                    billDAO.getBillById(billId);
+                    billingService.getBillById(billId);
 
             if (bill == null) {
 
@@ -1001,7 +1008,7 @@ public class BillingPanel extends JFrame {
 
             // Save payment
             boolean success =
-                    billDAO.addPayment(
+                    billingService.addPayment(
                             billId,
                             paymentAmount
                     );
@@ -1082,15 +1089,14 @@ public class BillingPanel extends JFrame {
 
         } catch (Exception e) {
 
+            LOGGER.error("Unable to process bill payment.", e);
+
             JOptionPane.showMessageDialog(
                     this,
-                    "Error processing payment:\n"
-                            + e.getMessage(),
+                    "Unable to process the payment. Verify the amount and database connection.",
                     "Database Error",
                     JOptionPane.ERROR_MESSAGE
             );
-
-            e.printStackTrace();
         }
     }
 
@@ -1125,7 +1131,7 @@ public class BillingPanel extends JFrame {
             }
 
             boolean success =
-                    billDAO.deleteBill(billId);
+                    billingService.deleteBill(billId);
 
             if (success) {
 
@@ -1151,9 +1157,11 @@ public class BillingPanel extends JFrame {
 
         } catch (Exception e) {
 
+            LOGGER.error("Unable to delete bill.", e);
+
             JOptionPane.showMessageDialog(
                     this,
-                    e.getMessage(),
+                    "Unable to delete the bill. Verify the database connection and try again.",
                     "Error",
                     JOptionPane.ERROR_MESSAGE
             );
@@ -1169,7 +1177,7 @@ public class BillingPanel extends JFrame {
         tableModel.setRowCount(0);
 
         List<Object[]> bills =
-                billDAO.getAllBills();
+                billingService.getAllBills();
 
         for (Object[] bill : bills) {
 

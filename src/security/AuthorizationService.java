@@ -8,13 +8,28 @@ import java.util.Map;
 
 /** Role policy used by application services and the desktop navigation boundary. */
 public final class AuthorizationService {
+    public static final String DASHBOARD = "Dashboard";
+    public static final String PATIENTS = "Patients";
+    public static final String DOCTORS = "Doctors";
+    public static final String APPOINTMENTS = "Appointments";
+    public static final String ADMISSIONS = "Admissions";
+    public static final String ROOMS = "Rooms";
+    public static final String BEDS = "Beds";
+    public static final String BILLING = "Billing";
+    public static final String REPORTS = "Reports";
+    public static final String USER_MANAGEMENT = "User Management";
+
     private static final Map<String, EnumSet<UserRole>> MODULE_ROLES = Map.of(
-            "Dashboard", EnumSet.allOf(UserRole.class),
-            "Patients", EnumSet.of(UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.DOCTOR),
-            "Doctors", EnumSet.of(UserRole.ADMIN, UserRole.RECEPTIONIST),
-            "Appointments", EnumSet.of(UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.DOCTOR),
-            "Billing", EnumSet.of(UserRole.ADMIN, UserRole.ACCOUNTANT),
-            "Reports", EnumSet.of(UserRole.ADMIN, UserRole.ACCOUNTANT));
+            DASHBOARD, EnumSet.allOf(UserRole.class),
+            PATIENTS, EnumSet.of(UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.DOCTOR),
+            DOCTORS, EnumSet.of(UserRole.ADMIN, UserRole.RECEPTIONIST),
+            APPOINTMENTS, EnumSet.of(UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.DOCTOR),
+            ADMISSIONS, EnumSet.of(UserRole.ADMIN, UserRole.RECEPTIONIST),
+            ROOMS, EnumSet.of(UserRole.ADMIN, UserRole.RECEPTIONIST),
+            BEDS, EnumSet.of(UserRole.ADMIN, UserRole.RECEPTIONIST),
+            BILLING, EnumSet.of(UserRole.ADMIN, UserRole.ACCOUNTANT),
+            REPORTS, EnumSet.of(UserRole.ADMIN, UserRole.ACCOUNTANT),
+            USER_MANAGEMENT, EnumSet.of(UserRole.ADMIN));
 
     public boolean canAccessModule(UserRole role, String module) {
         EnumSet<UserRole> permitted = MODULE_ROLES.get(module);

@@ -1,6 +1,6 @@
 package ui;
 
-import dao.DoctorDAO;
+import service.DoctorService;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -21,14 +21,14 @@ public class DoctorPanel extends JFrame {
     private JTable doctorTable;
     private DefaultTableModel tableModel;
 
-    private DoctorDAO doctorDAO;
+    private DoctorService doctorService;
 
     private int selectedDoctorId = -1;
 
 
     public DoctorPanel() {
 
-        doctorDAO = new DoctorDAO();
+        doctorService = new DoctorService();
 
         setTitle("Hospital Management System - Doctor Management");
         setSize(1200, 720);
@@ -386,7 +386,7 @@ public class DoctorPanel extends JFrame {
         }
 
         boolean success =
-                doctorDAO.addDoctor(
+                doctorService.addDoctor(
                         nameField.getText().trim(),
                         specializationField.getText().trim(),
                         phoneField.getText().trim(),
@@ -446,7 +446,7 @@ public class DoctorPanel extends JFrame {
 
 
         boolean success =
-                doctorDAO.updateDoctor(
+                doctorService.updateDoctor(
                         selectedDoctorId,
                         nameField.getText().trim(),
                         specializationField.getText().trim(),
@@ -514,7 +514,7 @@ public class DoctorPanel extends JFrame {
 
 
         boolean success =
-                doctorDAO.deleteDoctor(
+                doctorService.deleteDoctor(
                         selectedDoctorId
                 );
 
@@ -551,7 +551,7 @@ public class DoctorPanel extends JFrame {
         tableModel.setRowCount(0);
 
         List<Object[]> doctors =
-                doctorDAO.getAllDoctors();
+                doctorService.getAllDoctors();
 
         for (Object[] doctor : doctors) {
 

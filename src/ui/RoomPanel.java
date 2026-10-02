@@ -1,6 +1,6 @@
 package ui;
 
-import dao.RoomDAO;
+import service.RoomService;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -16,7 +16,7 @@ public class RoomPanel extends JFrame {
     private JTable roomTable;
     private DefaultTableModel tableModel;
 
-    private RoomDAO roomDAO;
+    private RoomService roomService;
 
     private int selectedRoomId = -1;
 
@@ -27,7 +27,7 @@ public class RoomPanel extends JFrame {
 
     public RoomPanel() {
 
-        roomDAO = new RoomDAO();
+        roomService = new RoomService();
 
         setTitle("Hospital Management System - Room Management");
 
@@ -440,7 +440,7 @@ public class RoomPanel extends JFrame {
 
 
             boolean success =
-                    roomDAO.addRoom(
+                    roomService.addRoom(
                             roomNumber,
                             roomType,
                             price
@@ -542,7 +542,7 @@ public class RoomPanel extends JFrame {
 
 
             boolean success =
-                    roomDAO.updateRoom(
+                    roomService.updateRoom(
                             selectedRoomId,
                             roomNumber,
                             roomType,
@@ -621,7 +621,7 @@ public class RoomPanel extends JFrame {
 
 
         boolean success =
-                roomDAO.deleteRoom(
+                roomService.deleteRoom(
                         selectedRoomId
                 );
 
@@ -659,7 +659,7 @@ public class RoomPanel extends JFrame {
 
 
         List<Object[]> rooms =
-                roomDAO.getAllRooms();
+                roomService.getAllRooms();
 
 
         for (Object[] room : rooms) {
