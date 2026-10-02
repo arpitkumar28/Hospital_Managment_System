@@ -9,6 +9,6 @@ export function PageIntro({ eyebrow, title, description, children }: { eyebrow: 
   </div></section>;
 }
 
-export function SectionHeading({ eyebrow, title, description }: { eyebrow: string; title: string; description?: string }) {
-  return <div className="mb-8 max-w-3xl"><p className="text-[10px] font-bold uppercase tracking-[.16em] text-teal-800">{eyebrow}</p><h2 className="mt-3 text-2xl font-bold tracking-[-.04em] text-slate-950 sm:text-3xl">{title}</h2>{description && <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">{description}</p>}</div>;
+export function SectionHeading({ eyebrow, title, description, light=false }: { eyebrow: string; title: string; description?: string; light?: boolean }) {
+  return <div className="mb-8 max-w-3xl"><p className={`text-[10px] font-bold uppercase tracking-[.16em] ${light?'text-teal-200':'text-teal-800'}`}>{eyebrow}</p><h2 className={`mt-3 text-2xl font-bold tracking-[-.04em] sm:text-3xl ${light?'text-white':'text-slate-950'}`}>{title}</h2>{description && <p className={`mt-3 max-w-2xl text-sm leading-7 ${light?'text-slate-300':'text-slate-600'}`}>{description}</p>}</div>;
 }

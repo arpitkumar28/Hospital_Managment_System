@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowDownToLine, ArrowRight, Github, Menu, Plus, X } from 'lucide-react';
+import { ArrowRight, Github, Menu, Plus, X } from 'lucide-react';
 import { useState } from 'react';
 import { repositoryUrl, routes, type SitePath } from '@/lib/site-data';
 
@@ -18,19 +18,14 @@ export function Navbar() {
           <span className="flex flex-col"><strong className="text-[15px] font-bold tracking-[-.04em] text-slate-900">Hospital Management</strong><small className="mt-0.5 text-[8px] font-bold tracking-[.16em] text-slate-500">SYSTEM PROJECT</small></span>
         </Link>
 
-        <nav aria-label="Main navigation" className="hidden items-center gap-4 lg:flex xl:gap-5">
-          {routes.slice(0, 6).map((route) => <NavLink key={route.href} {...route} current={pathname} />)}
-          <details className="group relative">
-            <summary className="flex cursor-pointer list-none items-center gap-1 text-[11px] font-semibold text-slate-600 transition hover:text-teal-700 focus-visible:rounded">More <span aria-hidden="true" className="transition group-open:rotate-180">⌄</span></summary>
-            <div className="absolute right-0 top-8 z-20 grid min-w-44 gap-1 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
-              {routes.slice(6).map((route) => <Link key={route.href} href={route.href} className="rounded-lg px-3 py-2 text-xs font-medium text-slate-600 hover:bg-teal-50 hover:text-teal-800">{route.label}</Link>)}
-            </div>
-          </details>
+        <nav aria-label="Main navigation" className="hidden items-center gap-3 lg:flex xl:gap-4">
+          {['/','/product','/features','/modules','/screenshots','/security','/architecture'].map((href) => {const route=routes.find((item)=>item.href===href);return route?<NavLink key={route.href} {...route} current={pathname}/>:null;})}
         </nav>
 
         <div className="hidden shrink-0 items-center gap-2 lg:flex">
+          <Link href="/docs" className="hidden text-[11px] font-semibold text-slate-600 transition hover:text-teal-700 xl:inline-flex">Documentation</Link>
           <a href={repositoryUrl} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-[11px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"><Github size={15} aria-hidden="true" /> GitHub</a>
-          <Link href="/download" className="inline-flex h-10 items-center gap-2 rounded-lg bg-teal-700 px-3.5 text-[11px] font-semibold text-white shadow-sm transition hover:bg-teal-800">Desktop app <ArrowDownToLine size={14} aria-hidden="true" /></Link>
+          <Link href="/contact" className="inline-flex h-10 items-center gap-2 rounded-lg bg-teal-700 px-3.5 text-[11px] font-semibold text-white shadow-sm transition hover:bg-teal-800">Request demo <ArrowRight size={14} aria-hidden="true" /></Link>
         </div>
 
         <button type="button" className="grid size-10 place-items-center rounded-lg border border-slate-200 text-slate-700 lg:hidden" aria-label={open ? 'Close navigation menu' : 'Open navigation menu'} aria-expanded={open} aria-controls="mobile-navigation" onClick={() => setOpen((value) => !value)}>
@@ -42,6 +37,7 @@ export function Navbar() {
           {routes.map((route) => <NavLink key={route.href} {...route} current={pathname} onNavigate={() => setOpen(false)} />)}
           <a href={repositoryUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg px-3 py-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"><Github size={15} aria-hidden="true" /> GitHub <ArrowRight size={13} aria-hidden="true" /></a>
         </div>
+        <div className="mx-auto mt-3 flex max-w-[1360px] gap-2 border-t border-slate-100 pt-3"><Link href="/docs" onClick={()=>setOpen(false)} className="flex-1 rounded-lg border border-slate-200 px-3 py-3 text-center text-xs font-semibold text-slate-700">Documentation</Link><Link href="/contact" onClick={()=>setOpen(false)} className="flex-1 rounded-lg bg-teal-700 px-3 py-3 text-center text-xs font-bold text-white">Request demo</Link><Link href="/download" onClick={()=>setOpen(false)} className="flex-1 rounded-lg border border-slate-200 px-3 py-3 text-center text-xs font-semibold text-slate-700">Download</Link></div>
       </nav>}
     </header>
   );
