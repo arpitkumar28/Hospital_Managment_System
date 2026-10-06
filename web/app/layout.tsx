@@ -8,13 +8,13 @@ export const metadata: Metadata = {
     default: 'Hospital Management System | Java Desktop Application',
     template: '%s | Hospital Management System',
   },
-  description: 'A Java desktop Hospital Management System product, currently under development.',
+  description: 'A Java Swing desktop Hospital Management System for secure hospital operations, backed by PostgreSQL.',
   applicationName: 'Hospital Management System',
   openGraph: {
     type: 'website',
     siteName: 'Hospital Management System',
     title: 'Hospital Management System | Java Desktop Application',
-    description: 'A Java desktop Hospital Management System product, currently under development.',
+    description: 'A Java Swing desktop Hospital Management System for secure hospital operations, backed by PostgreSQL.',
   },
   icons: { icon: '/favicon.svg' },
 };
