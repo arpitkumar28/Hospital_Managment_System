@@ -3,3 +3,4 @@
 -- This applies the initial schema to a NEW, EMPTY database only.
 \ir migrations/001_initial_schema.sql
 \ir migrations/002_authentication_foundation.sql
+\ir migrations/003_patient_authentication.sql

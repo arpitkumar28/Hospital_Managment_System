@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import security.PasswordUtil;
 import security.SessionManager;
+import security.PatientSession;
 import util.ValidationUtil;
 
 import java.sql.SQLException;
@@ -34,7 +35,7 @@ public class AuthService {
     public AuthenticatedUser authenticate(String usernameOrEmail, char[] password) throws AuthException {
         char[] supplied = password == null ? new char[0] : password;
         try {
-            if (sessions.isLoggedIn()) throw new AuthException("Sign out before starting another session.");
+            if (sessions.isLoggedIn() || PatientSession.INSTANCE.isLoggedIn()) throw new AuthException("Sign out before starting another session.");
             if (!ValidationUtil.isValidLogin(usernameOrEmail, supplied)) {
                 throw new AuthException("Enter your username or email and password.");
             }
