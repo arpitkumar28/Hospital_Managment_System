@@ -11,6 +11,8 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 public class BillingPanel extends JFrame {
     private static final Logger LOGGER = LoggerFactory.getLogger(BillingPanel.class);
@@ -513,33 +515,29 @@ public class BillingPanel extends JFrame {
     // CALCULATE TOTAL
     // =========================================================
 
-    private double calculateTotal() {
+    private BigDecimal calculateTotal() {
 
-        double room =
+        BigDecimal room =
                 parseAmount(
                         roomChargesField.getText()
                 );
 
-        double doctor =
+        BigDecimal doctor =
                 parseAmount(
                         doctorChargesField.getText()
                 );
 
-        double medicine =
+        BigDecimal medicine =
                 parseAmount(
                         medicineChargesField.getText()
                 );
 
-        double other =
+        BigDecimal other =
                 parseAmount(
                         otherChargesField.getText()
                 );
 
-        double total =
-                room
-                + doctor
-                + medicine
-                + other;
+        BigDecimal total = room.add(doctor).add(medicine).add(other);
 
         totalAmountField.setText(
                 String.format(
@@ -555,19 +553,17 @@ public class BillingPanel extends JFrame {
     // PARSE AMOUNT
     // =========================================================
 
-    private double parseAmount(
+    private BigDecimal parseAmount(
             String value
     ) {
 
         if (value == null ||
                 value.trim().isEmpty()) {
 
-            return 0;
+            return BigDecimal.ZERO.setScale(2);
         }
 
-        return Double.parseDouble(
-                value.trim()
-        );
+        return new BigDecimal(value.trim()).setScale(2, RoundingMode.UNNECESSARY);
     }
 
     // =========================================================
@@ -614,35 +610,35 @@ public class BillingPanel extends JFrame {
                             "Admission ID"
                     );
 
-            double room =
+            BigDecimal room =
                     parseAmount(
                             roomChargesField.getText()
                     );
 
-            double doctor =
+            BigDecimal doctor =
                     parseAmount(
                             doctorChargesField.getText()
                     );
 
-            double medicine =
+            BigDecimal medicine =
                     parseAmount(
                             medicineChargesField.getText()
                     );
 
-            double other =
+            BigDecimal other =
                     parseAmount(
                             otherChargesField.getText()
                     );
 
-            double paid =
+            BigDecimal paid =
                     parseAmount(
                             paidAmountField.getText()
                     );
 
-            double total =
+            BigDecimal total =
                     calculateTotal();
 
-            if (total <= 0) {
+            if (total.signum() <= 0) {
 
                 JOptionPane.showMessageDialog(
                         this,
@@ -654,7 +650,7 @@ public class BillingPanel extends JFrame {
                 return;
             }
 
-            if (paid < 0) {
+            if (paid.signum() < 0) {
 
                 JOptionPane.showMessageDialog(
                         this,
@@ -666,7 +662,7 @@ public class BillingPanel extends JFrame {
                 return;
             }
 
-            if (paid > total) {
+            if (paid.compareTo(total) > 0) {
 
                 JOptionPane.showMessageDialog(
                         this,
@@ -759,35 +755,35 @@ public class BillingPanel extends JFrame {
                             "Admission ID"
                     );
 
-            double room =
+            BigDecimal room =
                     parseAmount(
                             roomChargesField.getText()
                     );
 
-            double doctor =
+            BigDecimal doctor =
                     parseAmount(
                             doctorChargesField.getText()
                     );
 
-            double medicine =
+            BigDecimal medicine =
                     parseAmount(
                             medicineChargesField.getText()
                     );
 
-            double other =
+            BigDecimal other =
                     parseAmount(
                             otherChargesField.getText()
                     );
 
-            double paid =
+            BigDecimal paid =
                     parseAmount(
                             paidAmountField.getText()
                     );
 
-            double total =
+            BigDecimal total =
                     calculateTotal();
 
-            if (paid < 0) {
+            if (paid.signum() < 0) {
 
                 JOptionPane.showMessageDialog(
                         this,
@@ -799,7 +795,7 @@ public class BillingPanel extends JFrame {
                 return;
             }
 
-            if (paid > total) {
+            if (paid.compareTo(total) > 0) {
 
                 JOptionPane.showMessageDialog(
                         this,
@@ -897,17 +893,14 @@ public class BillingPanel extends JFrame {
                 return;
             }
 
-            double totalAmount =
-                    ((Number) bill[7]).doubleValue();
+            BigDecimal totalAmount = (BigDecimal) bill[7];
 
-            double paidAmount =
-                    ((Number) bill[8]).doubleValue();
+            BigDecimal paidAmount = (BigDecimal) bill[8];
 
-            double remainingAmount =
-                    totalAmount - paidAmount;
+            BigDecimal remainingAmount = totalAmount.subtract(paidAmount);
 
             // Already paid
-            if (remainingAmount <= 0.001) {
+            if (remainingAmount.signum() <= 0) {
 
                 JOptionPane.showMessageDialog(
                         this,
@@ -954,11 +947,10 @@ public class BillingPanel extends JFrame {
                 return;
             }
 
-            double paymentAmount =
-                    Double.parseDouble(input);
+            BigDecimal paymentAmount = new BigDecimal(input).setScale(2, RoundingMode.UNNECESSARY);
 
             // Positive payment
-            if (paymentAmount <= 0) {
+            if (paymentAmount.signum() <= 0) {
 
                 JOptionPane.showMessageDialog(
                         this,
@@ -971,7 +963,7 @@ public class BillingPanel extends JFrame {
             }
 
             // Prevent overpayment
-            if (paymentAmount > remainingAmount) {
+            if (paymentAmount.compareTo(remainingAmount) > 0) {
 
                 JOptionPane.showMessageDialog(
                         this,
@@ -1015,18 +1007,16 @@ public class BillingPanel extends JFrame {
 
             if (success) {
 
-                double newPaidAmount =
-                        paidAmount + paymentAmount;
+                BigDecimal newPaidAmount = paidAmount.add(paymentAmount);
 
-                double newRemainingAmount =
-                        totalAmount - newPaidAmount;
+                BigDecimal newRemainingAmount = totalAmount.subtract(newPaidAmount);
 
                 String status;
 
-                if (newRemainingAmount <= 0.001) {
+                if (newRemainingAmount.signum() <= 0) {
 
                     status = "PAID";
-                    newRemainingAmount = 0;
+                    newRemainingAmount = BigDecimal.ZERO.setScale(2);
 
                 } else {
 
@@ -1035,10 +1025,7 @@ public class BillingPanel extends JFrame {
 
                 // Update form
                 paidAmountField.setText(
-                        String.format(
-                                "%.2f",
-                                newPaidAmount
-                        )
+                        newPaidAmount.toPlainString()
                 );
 
                 paymentStatusCombo.setSelectedItem(

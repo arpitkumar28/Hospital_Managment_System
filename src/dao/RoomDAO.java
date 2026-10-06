@@ -9,8 +9,11 @@ import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RoomDAO {
+    private static final Logger LOGGER = LoggerFactory.getLogger(RoomDAO.class);
 
     // =====================================================
     // GET ALL ROOMS
@@ -61,8 +64,8 @@ public class RoomDAO {
             }
 
         } catch (SQLException e) {
-
-            e.printStackTrace();
+            LOGGER.error("Unable to load rooms.", e);
+            throw new IllegalStateException("Unable to load room records.", e);
         }
 
         return rooms;
@@ -122,10 +125,8 @@ public class RoomDAO {
             return false;
 
         } catch (SQLException e) {
-
-            e.printStackTrace();
-
-            return false;
+            LOGGER.error("Unable to add room.", e);
+            throw new IllegalStateException("Unable to save room. Check that the room number is unique.", e);
         }
     }
 
@@ -191,10 +192,8 @@ public class RoomDAO {
             return false;
 
         } catch (SQLException e) {
-
-            e.printStackTrace();
-
-            return false;
+            LOGGER.error("Unable to update room {}.", roomId, e);
+            throw new IllegalStateException("Unable to update room. Check that the room number is unique.", e);
         }
     }
 
@@ -229,10 +228,8 @@ public class RoomDAO {
             return rows > 0;
 
         } catch (SQLException e) {
-
-            e.printStackTrace();
-
-            return false;
+            LOGGER.error("Unable to delete room {}.", roomId, e);
+            throw new IllegalStateException("Unable to delete room. It may contain beds.", e);
         }
     }
 

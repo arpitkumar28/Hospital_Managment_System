@@ -56,9 +56,10 @@ class OperationalAuthorizationTest {
     }
     @Test void billingAndPaymentOperations() {
         BillFake d = new BillFake(); SessionManager s = session(); BillingService x = new BillingService(d,s,POLICY);
-        verify(s,"Billing",new IntSupplier[]{() -> d.calls},() -> x.addBill(1,2,1,1,1,1,1),
-                () -> x.updateBill(1,1,2,1,1,1,1,1),() -> x.deleteBill(1),x::getAllBills,() -> x.getBillsByPatient(1),
-                () -> x.getBillById(1),() -> x.addPayment(1,1),() -> x.getRemainingAmount(1),() -> x.calculateTotal(1,1,1,1));
+        java.math.BigDecimal amount = java.math.BigDecimal.ONE;
+        verify(s,"Billing",new IntSupplier[]{() -> d.calls},() -> x.addBill(1,2,amount,amount,amount,amount,amount),
+                () -> x.updateBill(1,1,2,amount,amount,amount,amount,amount),() -> x.deleteBill(1),x::getAllBills,() -> x.getBillsByPatient(1),
+                () -> x.getBillById(1),() -> x.addPayment(1,amount),() -> x.getRemainingAmount(1),() -> x.calculateTotal(amount,amount,amount,amount));
     }
     @Test void dashboardCountsAreAdministratorOnly() {
         DashboardFake d = new DashboardFake(); SessionManager s = session(); DashboardService x = new DashboardService(d,s,POLICY);
@@ -139,15 +140,15 @@ class OperationalAuthorizationTest {
         @Override public int getAvailableBedCount(){calls++;return 1;}
         @Override public int getOccupiedBedCount(){calls++;return 1;}}
     private static class BillFake extends BillDAO { int calls;
-        @Override public boolean addBill(int a,int b,double c,double d,double e,double f,double g){calls++;return true;}
-        @Override public boolean updateBill(int i,int a,int b,double c,double d,double e,double f,double g){calls++;return true;}
+        @Override public boolean addBill(int a,int b,java.math.BigDecimal c,java.math.BigDecimal d,java.math.BigDecimal e,java.math.BigDecimal f,java.math.BigDecimal g){calls++;return true;}
+        @Override public boolean updateBill(int i,int a,int b,java.math.BigDecimal c,java.math.BigDecimal d,java.math.BigDecimal e,java.math.BigDecimal f,java.math.BigDecimal g){calls++;return true;}
         @Override public boolean deleteBill(int i){calls++;return true;}
         @Override public List<Object[]> getAllBills(){calls++;return List.of();}
         @Override public List<Object[]> getBillsByPatient(int i){calls++;return List.of();}
         @Override public Object[] getBillById(int i){calls++;return new Object[]{i};}
-        @Override public boolean addPayment(int i,double a){calls++;return true;}
-        @Override public double getRemainingAmount(int i){calls++;return 1;}
-        @Override public double calculateTotal(double a,double b,double c,double d){calls++;return a+b+c+d;}}
+        @Override public boolean addPayment(int i,java.math.BigDecimal a){calls++;return true;}
+        @Override public java.math.BigDecimal getRemainingAmount(int i){calls++;return java.math.BigDecimal.ONE;}
+        @Override public java.math.BigDecimal calculateTotal(java.math.BigDecimal a,java.math.BigDecimal b,java.math.BigDecimal c,java.math.BigDecimal d){calls++;return a.add(b).add(c).add(d);}}
     private static class DashboardFake extends DashboardDAO { int calls;
         @Override public int getTotalPatients(){calls++;return 1;}
         @Override public int getTotalDoctors(){calls++;return 1;}

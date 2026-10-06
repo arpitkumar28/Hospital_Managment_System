@@ -57,6 +57,8 @@ public final class UserManagementPanel extends JFrame {
     private static final Logger LOGGER = LoggerFactory.getLogger(UserManagementPanel.class);
     private static final String TABLE_CARD = "table";
     private static final String EMPTY_CARD = "empty";
+    private static final String LOADING_CARD = "loading";
+    private static final String ERROR_CARD = "error";
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm", Locale.ENGLISH)
             .withZone(ZoneId.systemDefault());
 
@@ -73,6 +75,9 @@ public final class UserManagementPanel extends JFrame {
     private final UserTableModel tableModel = new UserTableModel();
     private final JTable table = new JTable(tableModel);
     private final JPanel emptyState = new JPanel(new GridBagLayout());
+    private final JLabel loadingState = new JLabel("Loading user accounts…", SwingConstants.CENTER);
+    private final JPanel errorState = new JPanel(new GridBagLayout());
+    private final JLabel errorMessage = new JLabel("Unable to load user accounts.", SwingConstants.CENTER);
     private final Timer searchTimer;
     private List<StaffAccountSummary> loadedUsers = List.of();
     private boolean busy;
@@ -169,7 +174,12 @@ public final class UserManagementPanel extends JFrame {
         results.setOpaque(false);
         results.add(tableCard, TABLE_CARD);
         results.add(emptyState, EMPTY_CARD);
-        resultsLayout.show(results, EMPTY_CARD);
+        loadingState.setFont(AppTheme.FONT_BODY);
+        loadingState.setForeground(AppTheme.TEXT_SECONDARY);
+        results.add(loadingState, LOADING_CARD);
+        buildErrorState();
+        results.add(errorState, ERROR_CARD);
+        resultsLayout.show(results, LOADING_CARD);
         directory.add(results, BorderLayout.CENTER);
         directory.add(activity, BorderLayout.SOUTH);
 
@@ -182,6 +192,22 @@ public final class UserManagementPanel extends JFrame {
             @Override public void changedUpdate(DocumentEvent event) { scheduleFilter(); }
         });
         return directory;
+    }
+
+    private void buildErrorState() {
+        JPanel message = new JPanel();
+        message.setOpaque(false);
+        message.setLayout(new javax.swing.BoxLayout(message, javax.swing.BoxLayout.Y_AXIS));
+        errorMessage.setFont(AppTheme.FONT_HEADING);
+        errorMessage.setForeground(AppTheme.TEXT_PRIMARY);
+        errorMessage.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JButton retry = new JButton("Retry");
+        retry.setAlignmentX(Component.CENTER_ALIGNMENT);
+        retry.addActionListener(event -> loadUsers());
+        message.add(errorMessage);
+        message.add(javax.swing.Box.createVerticalStrut(AppTheme.SPACE_MD));
+        message.add(retry);
+        errorState.add(message);
     }
 
     private void buildEmptyState() {
@@ -218,6 +244,8 @@ public final class UserManagementPanel extends JFrame {
     private void scheduleFilter() { searchTimer.restart(); }
 
     private void loadUsers() {
+        resultsLayout.show(results, LOADING_CARD);
+        activity.setText("Loading users…");
         runOperation("Loading users…", "Unable to load users.", users::listUsers, loaded -> {
             loadedUsers = loaded;
             applyFilters();
@@ -388,9 +416,17 @@ public final class UserManagementPanel extends JFrame {
                     setBusy(false, " ");
                     Throwable cause = exception.getCause() == null ? exception : exception.getCause();
                     if (cause instanceof AdminUserService.AdminOperationException serviceError) {
+                        if (loading.startsWith("Loading")) {
+                            errorMessage.setText("Unable to load user accounts. Try again.");
+                            resultsLayout.show(results, ERROR_CARD);
+                        }
                         showMessage(serviceError.getMessage(), JOptionPane.ERROR_MESSAGE);
                     } else {
                         LOGGER.error("User management operation failed.", cause);
+                        if (loading.startsWith("Loading")) {
+                            errorMessage.setText("Unable to load user accounts. Try again.");
+                            resultsLayout.show(results, ERROR_CARD);
+                        }
                         showMessage(fallback, JOptionPane.ERROR_MESSAGE);
                     }
                 }

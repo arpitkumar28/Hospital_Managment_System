@@ -3,6 +3,7 @@ package service;
 import dao.PatientDAO;
 import security.AuthorizationService;
 import security.SessionManager;
+import security.PatientSession;
 
 import java.util.List;
 
@@ -21,18 +22,28 @@ public final class PatientService extends AuthorizedService {
 
     public boolean addPatient(String name, String gender, String dob, String phone, String email,
                               String address, String bloodGroup, String emergencyContact) {
+        requireStaffSession();
         return execute(AuthorizationService.PATIENTS, () -> patients.addPatient(name, gender, dob, phone,
                 email, address, bloodGroup, emergencyContact));
     }
     public List<Object[]> getAllPatients() {
+        requireStaffSession();
         return execute(AuthorizationService.PATIENTS, patients::getAllPatients);
     }
     public boolean updatePatient(int patientId, String name, String gender, String dob, String phone,
                                 String email, String address, String bloodGroup, String emergencyContact) {
+        requireStaffSession();
         return execute(AuthorizationService.PATIENTS, () -> patients.updatePatient(patientId, name, gender,
                 dob, phone, email, address, bloodGroup, emergencyContact));
     }
     public boolean deletePatient(int patientId) {
+        requireStaffSession();
         return execute(AuthorizationService.PATIENTS, () -> patients.deletePatient(patientId));
+    }
+
+    private void requireStaffSession() {
+        if (PatientSession.INSTANCE.isLoggedIn()) {
+            throw new AuthorizationService.AccessDeniedException("Patient accounts cannot access staff services.");
+        }
     }
 }

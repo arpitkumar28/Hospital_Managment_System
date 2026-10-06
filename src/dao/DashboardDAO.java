@@ -5,8 +5,11 @@ import database.DatabaseConnection;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DashboardDAO {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DashboardDAO.class);
 
     // =====================================================
     // TOTAL PATIENTS
@@ -85,10 +88,9 @@ public class DashboardDAO {
             }
 
         } catch (Exception e) {
-
-            e.printStackTrace();
+            LOGGER.error("Unable to load dashboard count.", e);
+            throw new IllegalStateException("Unable to load dashboard information.", e);
         }
-
-        return 0;
+        throw new IllegalStateException("Dashboard count query returned no result.");
     }
 }
