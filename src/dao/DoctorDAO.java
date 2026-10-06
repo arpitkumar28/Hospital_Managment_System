@@ -5,8 +5,11 @@ import database.DatabaseConnection;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DoctorDAO {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DoctorDAO.class);
 
     // ================= ADD DOCTOR =================
 
@@ -42,8 +45,8 @@ public class DoctorDAO {
             return statement.executeUpdate() > 0;
 
         } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+            LOGGER.error("Unable to add doctor.", e);
+            throw new IllegalStateException("Unable to save doctor record.", e);
         }
     }
 
@@ -84,7 +87,8 @@ public class DoctorDAO {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("Unable to load doctors.", e);
+            throw new IllegalStateException("Unable to load doctor records.", e);
         }
 
         return doctors;
@@ -132,8 +136,8 @@ public class DoctorDAO {
             return statement.executeUpdate() > 0;
 
         } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+            LOGGER.error("Unable to update doctor {}.", doctorId, e);
+            throw new IllegalStateException("Unable to update doctor record.", e);
         }
     }
 
@@ -155,8 +159,8 @@ public class DoctorDAO {
             return statement.executeUpdate() > 0;
 
         } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+            LOGGER.error("Unable to delete doctor {}.", doctorId, e);
+            throw new IllegalStateException("Unable to delete doctor record. It may have related appointments.", e);
         }
     }
 }

@@ -17,6 +17,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.Dimension;
@@ -31,6 +32,7 @@ public class AdminDashboard extends JFrame {
     private final StatCard doctorCard = new StatCard("Total doctors", "—", AppTheme.SECONDARY_COLOR);
     private final StatCard appointmentCard = new StatCard("Appointments", "—", AppTheme.ACCENT_COLOR);
     private final StatCard pendingCard = new StatCard("Pending appointments", "—", AppTheme.WARNING_COLOR);
+    private boolean loadingStatistics;
 
     /** @deprecated Start the dashboard only after authenticating a staff user. */
     @Deprecated
@@ -144,14 +146,34 @@ public class AdminDashboard extends JFrame {
             pendingCard.setValue("—");
             return;
         }
-        try {
-            patientCard.setValue(String.valueOf(dashboardService.getTotalPatients()));
-            doctorCard.setValue(String.valueOf(dashboardService.getTotalDoctors()));
-            appointmentCard.setValue(String.valueOf(dashboardService.getTotalAppointments()));
-            pendingCard.setValue(String.valueOf(dashboardService.getPendingAppointments()));
-        } catch (RuntimeException exception) {
-            showFriendlyError("Unable to load dashboard information. Verify the PostgreSQL connection settings.");
-        }
+        if (loadingStatistics) return;
+        loadingStatistics = true;
+        patientCard.setValue("Loading…");
+        doctorCard.setValue("Loading…");
+        appointmentCard.setValue("Loading…");
+        pendingCard.setValue("Loading…");
+        new SwingWorker<int[], Void>() {
+            @Override protected int[] doInBackground() {
+                return new int[]{dashboardService.getTotalPatients(), dashboardService.getTotalDoctors(),
+                        dashboardService.getTotalAppointments(), dashboardService.getPendingAppointments()};
+            }
+            @Override protected void done() {
+                loadingStatistics = false;
+                try {
+                    int[] counts = get();
+                    patientCard.setValue(String.valueOf(counts[0]));
+                    doctorCard.setValue(String.valueOf(counts[1]));
+                    appointmentCard.setValue(String.valueOf(counts[2]));
+                    pendingCard.setValue(String.valueOf(counts[3]));
+                } catch (Exception exception) {
+                    patientCard.setValue("—");
+                    doctorCard.setValue("—");
+                    appointmentCard.setValue("—");
+                    pendingCard.setValue("—");
+                    showFriendlyError("Unable to load dashboard information. Verify the PostgreSQL connection settings.");
+                }
+            }
+        }.execute();
     }
 
     private void openModule(String title, Runnable opener) {

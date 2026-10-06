@@ -9,8 +9,11 @@ import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BedDAO {
+    private static final Logger LOGGER = LoggerFactory.getLogger(BedDAO.class);
 
     // =====================================================
     // GET ALL BEDS
@@ -57,8 +60,8 @@ public class BedDAO {
             }
 
         } catch (SQLException e) {
-
-            e.printStackTrace();
+            LOGGER.error("Unable to load beds.", e);
+            throw new IllegalStateException("Unable to load bed records.", e);
         }
 
         return beds;
@@ -111,8 +114,8 @@ public class BedDAO {
             }
 
         } catch (SQLException e) {
-
-            e.printStackTrace();
+            LOGGER.error("Unable to load available beds.", e);
+            throw new IllegalStateException("Unable to load available beds.", e);
         }
 
         return beds;
