@@ -162,15 +162,23 @@ public class RegistrationFrame extends JFrame {
             }
             @Override protected void done() {
                 submit.setEnabled(true);
-                if (error == null) {
+                try {
+                    get();
+                    if (error != null) {
+                        status.setForeground(AppTheme.ERROR_COLOR);
+                        status.setText("<html>" + error.replace("\n", "<br>") + "</html>");
+                        password.setText("");
+                        confirm.setText("");
+                        return;
+                    }
                     JOptionPane.showMessageDialog(RegistrationFrame.this,
                             "Your registration request has been submitted. Contact an administrator for account approval.",
                             "Request submitted", JOptionPane.INFORMATION_MESSAGE);
                     dispose();
                     new LoginFrame();
-                } else {
+                } catch (Exception exception) {
                     status.setForeground(AppTheme.ERROR_COLOR);
-                    status.setText("<html>" + error.replace("\n", "<br>") + "</html>");
+                    status.setText("Unable to connect to the hospital database.");
                     password.setText("");
                     confirm.setText("");
                 }

@@ -1,18 +1,17 @@
 package ui;
 
-import dao.AppointmentDAO;
-import database.DatabaseConnection;
+import service.AppointmentService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.Date;
 import java.sql.Time;
 
 public class AppointmentPanel extends JFrame {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AppointmentPanel.class);
 
     private JComboBox<PatientItem> patientBox;
     private JComboBox<DoctorItem> doctorBox;
@@ -26,7 +25,7 @@ public class AppointmentPanel extends JFrame {
     private JTable appointmentTable;
     private DefaultTableModel tableModel;
 
-    private final AppointmentDAO appointmentDAO;
+    private final AppointmentService appointmentService;
 
     private int selectedAppointmentId = -1;
 
@@ -37,7 +36,7 @@ public class AppointmentPanel extends JFrame {
 
     public AppointmentPanel() {
 
-        appointmentDAO = new AppointmentDAO();
+        appointmentService = new AppointmentService();
 
         setTitle("Hospital Management System - Appointment Management");
 
@@ -445,50 +444,16 @@ public class AppointmentPanel extends JFrame {
     // =====================================================
 
     private void loadPatients() {
-
         patientBox.removeAllItems();
-
-        String sql =
-                "SELECT patient_id, name " +
-                "FROM patients " +
-                "ORDER BY name";
-
-        try (
-                Connection connection =
-                        DatabaseConnection.getConnection();
-
-                PreparedStatement statement =
-                        connection.prepareStatement(sql);
-
-                ResultSet resultSet =
-                        statement.executeQuery()
-        ) {
-
-            while (resultSet.next()) {
-
-                patientBox.addItem(
-                        new PatientItem(
-                                resultSet.getInt(
-                                        "patient_id"
-                                ),
-                                resultSet.getString(
-                                        "name"
-                                )
-                        )
-                );
+        try {
+            for (Object[] patient : appointmentService.getPatients()) {
+                patientBox.addItem(new PatientItem((Integer) patient[0], (String) patient[1]));
             }
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Unable to load patients.\n"
-                            + e.getMessage(),
-                    "Database Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
+        } catch (RuntimeException exception) {
+            LOGGER.error("Unable to load appointment patients.", exception);
+            JOptionPane.showMessageDialog(this,
+                    "Unable to load patients. Verify the database connection and try again.",
+                    "Database Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -498,53 +463,16 @@ public class AppointmentPanel extends JFrame {
     // =====================================================
 
     private void loadDoctors() {
-
         doctorBox.removeAllItems();
-
-        String sql =
-                "SELECT doctor_id, name, specialization " +
-                "FROM doctors " +
-                "ORDER BY name";
-
-        try (
-                Connection connection =
-                        DatabaseConnection.getConnection();
-
-                PreparedStatement statement =
-                        connection.prepareStatement(sql);
-
-                ResultSet resultSet =
-                        statement.executeQuery()
-        ) {
-
-            while (resultSet.next()) {
-
-                doctorBox.addItem(
-                        new DoctorItem(
-                                resultSet.getInt(
-                                        "doctor_id"
-                                ),
-                                resultSet.getString(
-                                        "name"
-                                ),
-                                resultSet.getString(
-                                        "specialization"
-                                )
-                        )
-                );
+        try {
+            for (Object[] doctor : appointmentService.getDoctors()) {
+                doctorBox.addItem(new DoctorItem((Integer) doctor[0], (String) doctor[1], (String) doctor[2]));
             }
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Unable to load doctors.\n"
-                            + e.getMessage(),
-                    "Database Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
+        } catch (RuntimeException exception) {
+            LOGGER.error("Unable to load appointment doctors.", exception);
+            JOptionPane.showMessageDialog(this,
+                    "Unable to load doctors. Verify the database connection and try again.",
+                    "Database Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -559,7 +487,7 @@ public class AppointmentPanel extends JFrame {
 
         for (
                 Object[] appointment
-                : appointmentDAO.getAllAppointments()
+                : appointmentService.getAllAppointments()
         ) {
 
             tableModel.addRow(appointment);
@@ -587,7 +515,7 @@ public class AppointmentPanel extends JFrame {
 
 
         boolean success =
-                appointmentDAO.addAppointment(
+                appointmentService.addAppointment(
                         patient.id,
                         doctor.id,
                         dateField.getText().trim(),
@@ -655,7 +583,7 @@ public class AppointmentPanel extends JFrame {
 
 
         boolean success =
-                appointmentDAO.updateAppointment(
+                appointmentService.updateAppointment(
                         selectedAppointmentId,
                         patient.id,
                         doctor.id,
@@ -726,7 +654,7 @@ public class AppointmentPanel extends JFrame {
 
 
         boolean success =
-                appointmentDAO.deleteAppointment(
+                appointmentService.deleteAppointment(
                         selectedAppointmentId
                 );
 

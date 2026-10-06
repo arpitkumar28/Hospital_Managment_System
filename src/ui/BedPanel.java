@@ -1,7 +1,6 @@
 package ui;
 
-import dao.BedDAO;
-import dao.RoomDAO;
+import service.BedService;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -17,8 +16,7 @@ public class BedPanel extends JFrame {
     private JTable bedTable;
     private DefaultTableModel tableModel;
 
-    private BedDAO bedDAO;
-    private RoomDAO roomDAO;
+    private BedService bedService;
 
     private int selectedBedId = -1;
 
@@ -29,8 +27,7 @@ public class BedPanel extends JFrame {
 
     public BedPanel() {
 
-        bedDAO = new BedDAO();
-        roomDAO = new RoomDAO();
+        bedService = new BedService();
 
         setTitle("Hospital Management System - Bed Management");
 
@@ -441,7 +438,7 @@ public class BedPanel extends JFrame {
         roomComboBox.removeAllItems();
 
         List<Object[]> rooms =
-                roomDAO.getAllRooms();
+                bedService.getAllRooms();
 
 
         for (Object[] room : rooms) {
@@ -478,7 +475,7 @@ public class BedPanel extends JFrame {
         tableModel.setRowCount(0);
 
         List<Object[]> beds =
-                bedDAO.getAllBeds();
+                bedService.getAllBeds();
 
 
         for (Object[] bed : beds) {
@@ -535,7 +532,7 @@ public class BedPanel extends JFrame {
 
 
         boolean success =
-                bedDAO.addBed(
+                bedService.addBed(
                         selectedRoom.roomId,
                         bedNumber
                 );
@@ -621,7 +618,7 @@ public class BedPanel extends JFrame {
 
 
         boolean success =
-                bedDAO.updateBed(
+                bedService.updateBed(
                         selectedBedId,
                         selectedRoom.roomId,
                         bedNumber,
@@ -689,7 +686,7 @@ public class BedPanel extends JFrame {
 
 
         boolean success =
-                bedDAO.deleteBed(
+                bedService.deleteBed(
                         selectedBedId
                 );
 

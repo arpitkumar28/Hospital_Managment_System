@@ -1,6 +1,6 @@
 package ui;
 
-import dao.AdmissionDAO;
+import service.AdmissionService;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -21,7 +21,7 @@ public class AdmissionPanel extends JFrame {
 
     private DefaultTableModel tableModel;
 
-    private AdmissionDAO admissionDAO;
+    private AdmissionService admissionService;
 
     private int selectedAdmissionId = -1;
 
@@ -32,8 +32,8 @@ public class AdmissionPanel extends JFrame {
 
     public AdmissionPanel() {
 
-        admissionDAO =
-                new AdmissionDAO();
+        admissionService =
+                new AdmissionService();
 
         setTitle(
                 "Hospital Management System - Admission Management"
@@ -461,7 +461,7 @@ public class AdmissionPanel extends JFrame {
         patientComboBox.removeAllItems();
 
         List<Object[]> patients =
-                admissionDAO.getPatients();
+                admissionService.getPatients();
 
 
         for (Object[] patient : patients) {
@@ -489,7 +489,7 @@ public class AdmissionPanel extends JFrame {
         bedComboBox.removeAllItems();
 
         List<Object[]> beds =
-                admissionDAO.getAvailableBeds();
+                admissionService.getAvailableBeds();
 
 
         for (Object[] bed : beds) {
@@ -521,7 +521,7 @@ public class AdmissionPanel extends JFrame {
         tableModel.setRowCount(0);
 
         List<Object[]> admissions =
-                admissionDAO.getAllAdmissions();
+                admissionService.getAllAdmissions();
 
 
         for (Object[] admission :
@@ -607,7 +607,7 @@ public class AdmissionPanel extends JFrame {
 
 
         boolean success =
-                admissionDAO.admitPatient(
+                admissionService.admitPatient(
                         patient.patientId,
                         bed.bedId,
                         admissionDate
@@ -722,7 +722,7 @@ public class AdmissionPanel extends JFrame {
 
 
         boolean success =
-                admissionDAO.dischargePatient(
+                admissionService.dischargePatient(
                         selectedAdmissionId,
                         Date.valueOf(
                                 LocalDate.now()

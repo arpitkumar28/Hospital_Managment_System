@@ -1,6 +1,6 @@
 package ui;
 
-import dao.DashboardDAO;
+import service.DashboardService;
 import model.AuthenticatedUser;
 import model.UserRole;
 import security.AuthorizationService;
@@ -23,7 +23,7 @@ import java.awt.Dimension;
 
 /** Main administrative shell and database-backed operational overview. */
 public class AdminDashboard extends JFrame {
-    private final DashboardDAO dashboardDAO = new DashboardDAO();
+    private final DashboardService dashboardService = new DashboardService();
     private final AuthenticatedUser currentUser;
     private final AuthorizationService authorization = new AuthorizationService();
     private final AuthService authService = new AuthService();
@@ -70,6 +70,12 @@ public class AdminDashboard extends JFrame {
         addIfAuthorized(sidebar, "Patients");
         addIfAuthorized(sidebar, "Doctors");
         addIfAuthorized(sidebar, "Appointments");
+        addIfAuthorized(sidebar, "Admissions");
+        addIfAuthorized(sidebar, "Rooms");
+        addIfAuthorized(sidebar, "Beds");
+        addIfAuthorized(sidebar, "Billing");
+        addIfAuthorized(sidebar, "Reports");
+        addIfAuthorized(sidebar, "User Management");
         sidebar.setSelected("Dashboard");
         return sidebar;
     }
@@ -121,6 +127,11 @@ public class AdminDashboard extends JFrame {
             case "Patients" -> openModule("Patient Management", PatientPanel::new);
             case "Doctors" -> openModule("Doctor Management", DoctorPanel::new);
             case "Appointments" -> openModule("Appointment Management", AppointmentPanel::new);
+            case "Admissions" -> openModule("Admission Management", AdmissionPanel::new);
+            case "Rooms" -> openModule("Room Management", RoomPanel::new);
+            case "Beds" -> openModule("Bed Management", BedPanel::new);
+            case "Billing" -> openModule("Billing & Payments", BillingPanel::new);
+            case "User Management" -> openModule("User Management", UserManagementPanel::new);
             default -> { }
         }
     }
@@ -134,10 +145,10 @@ public class AdminDashboard extends JFrame {
             return;
         }
         try {
-            patientCard.setValue(String.valueOf(dashboardDAO.getTotalPatients()));
-            doctorCard.setValue(String.valueOf(dashboardDAO.getTotalDoctors()));
-            appointmentCard.setValue(String.valueOf(dashboardDAO.getTotalAppointments()));
-            pendingCard.setValue(String.valueOf(dashboardDAO.getPendingAppointments()));
+            patientCard.setValue(String.valueOf(dashboardService.getTotalPatients()));
+            doctorCard.setValue(String.valueOf(dashboardService.getTotalDoctors()));
+            appointmentCard.setValue(String.valueOf(dashboardService.getTotalAppointments()));
+            pendingCard.setValue(String.valueOf(dashboardService.getPendingAppointments()));
         } catch (RuntimeException exception) {
             showFriendlyError("Unable to load dashboard information. Verify the PostgreSQL connection settings.");
         }

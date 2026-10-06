@@ -41,35 +41,35 @@ public class AuthService {
             Optional<User> match = users.findByUsernameOrEmail(usernameOrEmail.trim());
             if (match.isEmpty()) {
                 audit.recordEvent(null, "LOGIN_FAILED");
-                throw new AuthException("Invalid username or password.");
+                throw new AuthException("Your username or password is incorrect.");
             }
             User user = match.get();
-            if (user.status() != UserStatus.ACTIVE) {
-                if (user.status() == UserStatus.LOCKED && users.restoreExpiredLock(user.userId())) {
-                    user = users.findByUsernameOrEmail(usernameOrEmail.trim()).orElse(user);
-                }
-            }
-            if (user.status() != UserStatus.ACTIVE) {
-                audit.recordEvent(user.userId(), "LOGIN_BLOCKED_" + user.status().name());
-                throw new AuthException("This account is not active. Contact an administrator.");
+            if (user.status() == UserStatus.LOCKED && users.restoreExpiredLock(user.userId())) {
+                user = users.findByUsernameOrEmail(usernameOrEmail.trim()).orElse(user);
             }
             if (!PasswordUtil.verifyPassword(supplied, user.passwordHash())) {
-                boolean locked = users.recordFailedLogin(user.userId(),
+                boolean locked = user.status() == UserStatus.ACTIVE && users.recordFailedLogin(user.userId(),
                         AuthSecurityConfig.MAX_FAILED_ATTEMPTS, AuthSecurityConfig.LOCKOUT_MINUTES);
-                audit.recordEvent(user.userId(), locked ? "ACCOUNT_LOCKED" : "LOGIN_FAILED");
-                throw new AuthException(locked
-                        ? "This account has been locked after repeated failed attempts. Contact an administrator."
-                        : "Invalid username or password.");
+                audit.recordEvent(user.userId(), "LOGIN_FAILED");
+                if (locked) audit.recordEvent(user.userId(), "ACCOUNT_LOCKED");
+                throw new AuthException("Your username or password is incorrect.");
+            }
+            if (user.status() != UserStatus.ACTIVE) {
+                audit.recordEvent(user.userId(), "LOGIN_FAILED");
+                audit.recordEvent(user.userId(), "LOGIN_BLOCKED_" + user.status().name());
+                throw new AuthException("Your username or password is incorrect.");
             }
             if (!users.recordSuccessfulLogin(user.userId())) {
                 throw new AuthException("This account is not active. Contact an administrator.");
             }
+            if (!audit.recordEvent(user.userId(), "LOGIN_SUCCESS")) {
+                throw new AuthException("Unable to connect to the hospital database.");
+            }
             AuthenticatedUser authenticated = sessions.createSession(user);
-            audit.recordEvent(user.userId(), "LOGIN_SUCCEEDED");
             return authenticated;
         } catch (SQLException exception) {
             LOGGER.error("Authentication operation failed.", exception);
-            throw new AuthException("Unable to sign in right now. Check the database connection and try again.");
+            throw new AuthException("Unable to connect to the hospital database.");
         } finally {
             Arrays.fill(supplied, '\0');
         }
