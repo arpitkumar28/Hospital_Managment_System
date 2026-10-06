@@ -133,6 +133,7 @@ public class AdminDashboard extends JFrame {
             case "Rooms" -> openModule("Room Management", RoomPanel::new);
             case "Beds" -> openModule("Bed Management", BedPanel::new);
             case "Billing" -> openModule("Billing & Payments", BillingPanel::new);
+            case "Reports" -> openModule("Reports", ReportsPanel::new);
             case "User Management" -> openModule("User Management", UserManagementPanel::new);
             default -> { }
         }

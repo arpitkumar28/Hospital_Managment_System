@@ -7,8 +7,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
+import java.math.BigDecimal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BillDAO {
+    private static final Logger LOGGER = LoggerFactory.getLogger(BillDAO.class);
 
     // =========================================================
     // ADD BILL
@@ -17,20 +21,16 @@ public class BillDAO {
     public boolean addBill(
             int patientId,
             int admissionId,
-            double roomCharges,
-            double doctorCharges,
-            double medicineCharges,
-            double otherCharges,
-            double paidAmount
+            BigDecimal roomCharges,
+            BigDecimal doctorCharges,
+            BigDecimal medicineCharges,
+            BigDecimal otherCharges,
+            BigDecimal paidAmount
     ) {
 
-        double totalAmount =
-                roomCharges
-                + doctorCharges
-                + medicineCharges
-                + otherCharges;
+        BigDecimal totalAmount = calculateTotal(roomCharges, doctorCharges, medicineCharges, otherCharges);
 
-        if (paidAmount < 0 || paidAmount > totalAmount) {
+        if (paidAmount == null || paidAmount.signum() < 0 || paidAmount.compareTo(totalAmount) > 0) {
             return false;
         }
 
@@ -54,19 +54,19 @@ public class BillDAO {
 
             statement.setInt(1, patientId);
             statement.setInt(2, admissionId);
-            statement.setDouble(3, roomCharges);
-            statement.setDouble(4, doctorCharges);
-            statement.setDouble(5, medicineCharges);
-            statement.setDouble(6, otherCharges);
-            statement.setDouble(7, totalAmount);
-            statement.setDouble(8, paidAmount);
+            statement.setBigDecimal(3, roomCharges);
+            statement.setBigDecimal(4, doctorCharges);
+            statement.setBigDecimal(5, medicineCharges);
+            statement.setBigDecimal(6, otherCharges);
+            statement.setBigDecimal(7, totalAmount);
+            statement.setBigDecimal(8, paidAmount);
             statement.setString(9, paymentStatus);
 
             return statement.executeUpdate() > 0;
 
         } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+            LOGGER.error("Unable to save bill.", e);
+            throw new IllegalStateException("Unable to save bill.", e);
         }
     }
 
@@ -78,20 +78,16 @@ public class BillDAO {
             int billId,
             int patientId,
             int admissionId,
-            double roomCharges,
-            double doctorCharges,
-            double medicineCharges,
-            double otherCharges,
-            double paidAmount
+            BigDecimal roomCharges,
+            BigDecimal doctorCharges,
+            BigDecimal medicineCharges,
+            BigDecimal otherCharges,
+            BigDecimal paidAmount
     ) {
 
-        double totalAmount =
-                roomCharges
-                + doctorCharges
-                + medicineCharges
-                + otherCharges;
+        BigDecimal totalAmount = calculateTotal(roomCharges, doctorCharges, medicineCharges, otherCharges);
 
-        if (paidAmount < 0 || paidAmount > totalAmount) {
+        if (paidAmount == null || paidAmount.signum() < 0 || paidAmount.compareTo(totalAmount) > 0) {
             return false;
         }
 
@@ -121,20 +117,20 @@ public class BillDAO {
 
             statement.setInt(1, patientId);
             statement.setInt(2, admissionId);
-            statement.setDouble(3, roomCharges);
-            statement.setDouble(4, doctorCharges);
-            statement.setDouble(5, medicineCharges);
-            statement.setDouble(6, otherCharges);
-            statement.setDouble(7, totalAmount);
-            statement.setDouble(8, paidAmount);
+            statement.setBigDecimal(3, roomCharges);
+            statement.setBigDecimal(4, doctorCharges);
+            statement.setBigDecimal(5, medicineCharges);
+            statement.setBigDecimal(6, otherCharges);
+            statement.setBigDecimal(7, totalAmount);
+            statement.setBigDecimal(8, paidAmount);
             statement.setString(9, paymentStatus);
             statement.setInt(10, billId);
 
             return statement.executeUpdate() > 0;
 
         } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+            LOGGER.error("Unable to update bill {}.", billId, e);
+            throw new IllegalStateException("Unable to update bill.", e);
         }
     }
 
@@ -160,8 +156,8 @@ public class BillDAO {
             return statement.executeUpdate() > 0;
 
         } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+            LOGGER.error("Unable to delete bill {}.", billId, e);
+            throw new IllegalStateException("Unable to delete bill.", e);
         }
     }
 
@@ -206,12 +202,12 @@ public class BillDAO {
                         resultSet.getInt("bill_id"),
                         resultSet.getInt("patient_id"),
                         resultSet.getInt("admission_id"),
-                        resultSet.getDouble("room_charges"),
-                        resultSet.getDouble("doctor_charges"),
-                        resultSet.getDouble("medicine_charges"),
-                        resultSet.getDouble("other_charges"),
-                        resultSet.getDouble("total_amount"),
-                        resultSet.getDouble("paid_amount"),
+                        resultSet.getBigDecimal("room_charges"),
+                        resultSet.getBigDecimal("doctor_charges"),
+                        resultSet.getBigDecimal("medicine_charges"),
+                        resultSet.getBigDecimal("other_charges"),
+                        resultSet.getBigDecimal("total_amount"),
+                        resultSet.getBigDecimal("paid_amount"),
                         resultSet.getString("payment_status"),
                         resultSet.getTimestamp("bill_date")
                 };
@@ -220,7 +216,8 @@ public class BillDAO {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("Unable to load bills.", e);
+            throw new IllegalStateException("Unable to load bills.", e);
         }
 
         return bills;
@@ -270,12 +267,12 @@ public class BillDAO {
                             resultSet.getInt("bill_id"),
                             resultSet.getInt("patient_id"),
                             resultSet.getInt("admission_id"),
-                            resultSet.getDouble("room_charges"),
-                            resultSet.getDouble("doctor_charges"),
-                            resultSet.getDouble("medicine_charges"),
-                            resultSet.getDouble("other_charges"),
-                            resultSet.getDouble("total_amount"),
-                            resultSet.getDouble("paid_amount"),
+                            resultSet.getBigDecimal("room_charges"),
+                            resultSet.getBigDecimal("doctor_charges"),
+                            resultSet.getBigDecimal("medicine_charges"),
+                            resultSet.getBigDecimal("other_charges"),
+                            resultSet.getBigDecimal("total_amount"),
+                            resultSet.getBigDecimal("paid_amount"),
                             resultSet.getString("payment_status"),
                             resultSet.getTimestamp("bill_date")
                     };
@@ -285,7 +282,8 @@ public class BillDAO {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("Unable to load bills for patient {}.", patientId, e);
+            throw new IllegalStateException("Unable to load patient bills.", e);
         }
 
         return bills;
@@ -332,12 +330,12 @@ public class BillDAO {
                             resultSet.getInt("bill_id"),
                             resultSet.getInt("patient_id"),
                             resultSet.getInt("admission_id"),
-                            resultSet.getDouble("room_charges"),
-                            resultSet.getDouble("doctor_charges"),
-                            resultSet.getDouble("medicine_charges"),
-                            resultSet.getDouble("other_charges"),
-                            resultSet.getDouble("total_amount"),
-                            resultSet.getDouble("paid_amount"),
+                            resultSet.getBigDecimal("room_charges"),
+                            resultSet.getBigDecimal("doctor_charges"),
+                            resultSet.getBigDecimal("medicine_charges"),
+                            resultSet.getBigDecimal("other_charges"),
+                            resultSet.getBigDecimal("total_amount"),
+                            resultSet.getBigDecimal("paid_amount"),
                             resultSet.getString("payment_status"),
                             resultSet.getTimestamp("bill_date")
                     };
@@ -345,7 +343,8 @@ public class BillDAO {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("Unable to load bill {}.", billId, e);
+            throw new IllegalStateException("Unable to load bill details.", e);
         }
 
         return null;
@@ -357,10 +356,10 @@ public class BillDAO {
 
     public boolean addPayment(
             int billId,
-            double paymentAmount
+            BigDecimal paymentAmount
     ) {
 
-        if (paymentAmount <= 0) {
+        if (paymentAmount == null || paymentAmount.signum() <= 0) {
             return false;
         }
 
@@ -392,22 +391,22 @@ public class BillDAO {
                     return false;
                 }
 
-                double totalAmount =
-                        resultSet.getDouble("total_amount");
+                BigDecimal totalAmount =
+                        resultSet.getBigDecimal("total_amount");
 
-                double oldPaidAmount =
-                        resultSet.getDouble("paid_amount");
+                BigDecimal oldPaidAmount =
+                        resultSet.getBigDecimal("paid_amount");
 
-                double remainingAmount =
-                        totalAmount - oldPaidAmount;
+                BigDecimal remainingAmount =
+                        totalAmount.subtract(oldPaidAmount);
 
                 // Prevent overpayment
-                if (paymentAmount > remainingAmount) {
+                if (paymentAmount.compareTo(remainingAmount) > 0) {
                     return false;
                 }
 
-                double newPaidAmount =
-                        oldPaidAmount + paymentAmount;
+                BigDecimal newPaidAmount =
+                        oldPaidAmount.add(paymentAmount);
 
                 String paymentStatus =
                         getPaymentStatus(
@@ -420,7 +419,7 @@ public class BillDAO {
                                 connection.prepareStatement(updateSql)
                 ) {
 
-                    updateStatement.setDouble(
+                    updateStatement.setBigDecimal(
                             1,
                             newPaidAmount
                     );
@@ -440,8 +439,8 @@ public class BillDAO {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+            LOGGER.error("Unable to record payment for bill {}.", billId, e);
+            throw new IllegalStateException("Unable to record bill payment.", e);
         }
     }
 
@@ -449,7 +448,7 @@ public class BillDAO {
     // GET REMAINING AMOUNT
     // =========================================================
 
-    public double getRemainingAmount(int billId) {
+    public BigDecimal getRemainingAmount(int billId) {
 
         String sql =
                 "SELECT total_amount, paid_amount " +
@@ -470,22 +469,23 @@ public class BillDAO {
 
                 if (resultSet.next()) {
 
-                    double total =
-                            resultSet.getDouble("total_amount");
+                    BigDecimal total =
+                            resultSet.getBigDecimal("total_amount");
 
-                    double paid =
-                            resultSet.getDouble("paid_amount");
+                    BigDecimal paid =
+                            resultSet.getBigDecimal("paid_amount");
 
-                    return total - paid;
+                    return total.subtract(paid);
                 }
 
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("Unable to load remaining balance for bill {}.", billId, e);
+            throw new IllegalStateException("Unable to load remaining bill balance.", e);
         }
 
-        return 0;
+        throw new IllegalArgumentException("Bill was not found.");
     }
 
     // =========================================================
@@ -493,14 +493,14 @@ public class BillDAO {
     // =========================================================
 
     private String getPaymentStatus(
-            double totalAmount,
-            double paidAmount
+            BigDecimal totalAmount,
+            BigDecimal paidAmount
     ) {
 
-        if (paidAmount <= 0) {
+        if (paidAmount.signum() <= 0) {
             return "PENDING";
 
-        } else if (paidAmount >= totalAmount) {
+        } else if (paidAmount.compareTo(totalAmount) >= 0) {
             return "PAID";
 
         } else {
@@ -512,16 +512,13 @@ public class BillDAO {
     // TOTAL BILL
     // =========================================================
 
-    public double calculateTotal(
-            double roomCharges,
-            double doctorCharges,
-            double medicineCharges,
-            double otherCharges
+    public BigDecimal calculateTotal(
+            BigDecimal roomCharges,
+            BigDecimal doctorCharges,
+            BigDecimal medicineCharges,
+            BigDecimal otherCharges
     ) {
 
-        return roomCharges
-                + doctorCharges
-                + medicineCharges
-                + otherCharges;
+        return roomCharges.add(doctorCharges).add(medicineCharges).add(otherCharges);
     }
 }

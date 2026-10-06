@@ -102,7 +102,7 @@ public class LoginFrame extends JFrame {
         form.add(registration, c);
         c.gridy++;
         c.insets = new Insets(18, 0, 0, 0);
-        JLabel notice = new JLabel("Application interface currently under development.");
+        JLabel notice = new JLabel("For authorized hospital staff access.");
         notice.setFont(AppTheme.FONT_SMALL);
         notice.setForeground(AppTheme.TEXT_SECONDARY);
         form.add(notice, c);
