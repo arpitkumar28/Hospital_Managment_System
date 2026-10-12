@@ -179,10 +179,8 @@ class PostgresAdmissionBedIntegrationTest {
 
     @Test
     void invalidRoomReferencesAreRejectedByDatabaseConstraints() {
-        assertThrows(IllegalStateException.class,
-                () -> beds.addBed(Integer.MAX_VALUE, "invalid-room-" + UUID.randomUUID()));
-        assertThrows(IllegalStateException.class,
-                () -> beds.updateBed(availableBedId, Integer.MAX_VALUE, "invalid-room-update", "AVAILABLE"));
+        assertFalse(beds.addBed(Integer.MAX_VALUE, "invalid-room-" + UUID.randomUUID()));
+        assertFalse(beds.updateBed(availableBedId, Integer.MAX_VALUE, "invalid-room-update", "AVAILABLE"));
     }
 
     private static int insertPatient(Connection connection, String name) throws Exception {
