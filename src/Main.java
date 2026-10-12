@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.JOptionPane;
+import config.DatabaseConfig;
 
 public class Main {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
@@ -14,6 +15,14 @@ public class Main {
     public static void main(String[] args) {
 
         AppTheme.install();
+        try {
+            DatabaseConfig.fromEnvironment();
+        } catch (IllegalStateException exception) {
+            String message = "Database configuration is missing or invalid.\n\n" + exception.getMessage();
+            LOGGER.error("{}", message);
+            JOptionPane.showMessageDialog(null, message, "Database configuration", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         String setupMessage = null;
         try {
             new InitialAdminProvisioner().provisionIfConfigured();
