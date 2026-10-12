@@ -46,7 +46,8 @@ public class BillDAO {
         BigDecimal totalAmount = calculateTotal(roomCharges, doctorCharges, medicineCharges, otherCharges);
 
         if (!isValidPaidAmount(paidAmount, totalAmount)) {
-            return false;
+            throw new IllegalArgumentException(
+                    "Paid amount must be a valid currency amount between zero and the bill total.");
         }
 
         String paymentStatus =

@@ -16,6 +16,8 @@ status in a transaction. Concurrent payments cannot overwrite one another or
 overpay a bill. Bill edits lock the row, preserve the cumulative paid amount,
 and reject changes to that amount; subsequent collection must use the payment
 operation.
+Bills created in the Swing screen start unpaid; collections are recorded with
+the Add Payment action rather than by editing the cumulative paid amount.
 
 ## Amount validation
 
