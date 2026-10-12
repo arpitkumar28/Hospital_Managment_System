@@ -119,10 +119,6 @@ public class AdmissionPanel extends JFrame {
                 )
         );
 
-        mainPanel.add(
-                title,
-                BorderLayout.NORTH
-        );
 
 
         // =================================================
@@ -181,8 +177,8 @@ public class AdmissionPanel extends JFrame {
 
         patientComboBox.setPreferredSize(
                 new Dimension(
-                        300,
-                        30
+                        280,
+                        38
                 )
         );
 
@@ -211,8 +207,8 @@ public class AdmissionPanel extends JFrame {
 
         bedComboBox.setPreferredSize(
                 new Dimension(
-                        300,
-                        30
+                        320,
+                        38
                 )
         );
 
@@ -247,8 +243,8 @@ public class AdmissionPanel extends JFrame {
 
         admissionDateField.setPreferredSize(
                 new Dimension(
-                        300,
-                        30
+                        220,
+                        38
                 )
         );
 
@@ -315,12 +311,6 @@ public class AdmissionPanel extends JFrame {
         formPanel.add(
                 clearButton,
                 gbc
-        );
-
-
-        mainPanel.add(
-                formPanel,
-                BorderLayout.CENTER
         );
 
 
@@ -407,7 +397,7 @@ public class AdmissionPanel extends JFrame {
 
         mainPanel.add(
                 tablePanel,
-                BorderLayout.SOUTH
+                BorderLayout.CENTER
         );
 
 
@@ -450,6 +440,18 @@ public class AdmissionPanel extends JFrame {
                 );
 
 
+        JPanel top = new JPanel(new BorderLayout(0, 8));
+        top.setOpaque(false);
+        top.add(title, BorderLayout.NORTH);
+        top.add(formPanel, BorderLayout.CENTER);
+        mainPanel.add(top, BorderLayout.NORTH);
+        setMinimumSize(new Dimension(900, 620));
+        scrollPane.setPreferredSize(new Dimension(900, 340));
+        admissionTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        int[] widths = {110, 220, 120, 120, 160, 160};
+        for (int column = 0; column < widths.length; column++) {
+            admissionTable.getColumnModel().getColumn(column).setPreferredWidth(widths[column]);
+        }
         add(mainPanel);
     }
 

@@ -96,10 +96,7 @@ public class BedPanel extends JFrame {
                 )
         );
 
-        mainPanel.add(
-                titleLabel,
-                BorderLayout.NORTH
-        );
+        mainPanel.add(titleLabel, BorderLayout.NORTH);
 
 
         // =================================================
@@ -292,10 +289,11 @@ public class BedPanel extends JFrame {
         );
 
 
-        mainPanel.add(
-                formPanel,
-                BorderLayout.CENTER
-        );
+        JPanel top = new JPanel(new BorderLayout(0, 8));
+        top.setOpaque(false);
+        top.add(titleLabel, BorderLayout.NORTH);
+        top.add(formPanel, BorderLayout.CENTER);
+        mainPanel.add(top, BorderLayout.NORTH);
 
 
         // =================================================
@@ -372,8 +370,15 @@ public class BedPanel extends JFrame {
 
         mainPanel.add(
                 tablePanel,
-                BorderLayout.SOUTH
+                BorderLayout.CENTER
         );
+        setMinimumSize(new Dimension(780, 540));
+        scrollPane.setPreferredSize(new Dimension(780, 300));
+        bedTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        int[] widths = {75, 75, 180, 180, 140};
+        for (int column = 0; column < widths.length; column++) {
+            bedTable.getColumnModel().getColumn(column).setPreferredWidth(widths[column]);
+        }
 
 
         // =================================================

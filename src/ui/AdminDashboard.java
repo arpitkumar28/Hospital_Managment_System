@@ -111,7 +111,7 @@ public class AdminDashboard extends JFrame {
         JLabel subtitle = new JLabel("Hospital overview and operational summary");
         subtitle.setFont(AppTheme.FONT_BODY);
         subtitle.setForeground(AppTheme.TEXT_SECONDARY);
-        JPanel cards = new JPanel(new GridLayout(2, 2, AppTheme.SPACE_LG, AppTheme.SPACE_LG));
+        JPanel cards = new JPanel(new GridLayout(0, 2, AppTheme.SPACE_LG, AppTheme.SPACE_LG));
         cards.setOpaque(false);
         cards.add(patientCard);
         cards.add(doctorCard);
@@ -136,6 +136,7 @@ public class AdminDashboard extends JFrame {
                 ? "Live operational overview" : "Your workspace");
         sectionTitle.setFont(AppTheme.FONT_SUBHEADING);
         sectionTitle.setForeground(AppTheme.TEXT_PRIMARY);
+        sectionTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, AppTheme.SPACE_SM, 0));
         overview.add(sectionTitle, BorderLayout.NORTH);
         if (currentUser.role() == UserRole.ADMIN) {
             overview.add(cards, BorderLayout.CENTER);
@@ -144,9 +145,11 @@ public class AdminDashboard extends JFrame {
             guidance.setFont(AppTheme.FONT_BODY);
             guidance.setForeground(AppTheme.TEXT_SECONDARY);
             guidance.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(AppTheme.BORDER_COLOR),
-                    BorderFactory.createEmptyBorder(AppTheme.SPACE_LG, AppTheme.SPACE_LG,
-                            AppTheme.SPACE_LG, AppTheme.SPACE_LG)));
+                    BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(AppTheme.BORDER_COLOR),
+                            BorderFactory.createEmptyBorder(AppTheme.SPACE_XL, AppTheme.SPACE_XL,
+                                    AppTheme.SPACE_XL, AppTheme.SPACE_XL)),
+                    BorderFactory.createEmptyBorder(0, 0, AppTheme.SPACE_LG, 0)));
             overview.add(guidance, BorderLayout.CENTER);
         }
 

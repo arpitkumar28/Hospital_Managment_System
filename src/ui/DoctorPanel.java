@@ -324,24 +324,20 @@ public class DoctorPanel extends JFrame {
 
         // ================= LAYOUT =================
 
-        mainPanel.add(
-                header,
-                BorderLayout.NORTH
-        );
+        JPanel top = new JPanel(new BorderLayout(0, 8));
+        top.setOpaque(false);
+        top.add(header, BorderLayout.NORTH);
+        top.add(formPanel, BorderLayout.CENTER);
+        mainPanel.add(top, BorderLayout.NORTH);
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
 
-        mainPanel.add(
-                formPanel,
-                BorderLayout.CENTER
-        );
-
-        mainPanel.add(
-                scrollPane,
-                BorderLayout.SOUTH
-        );
-
-        scrollPane.setPreferredSize(
-                new Dimension(1200, 330)
-        );
+        setMinimumSize(new Dimension(900, 620));
+        scrollPane.setPreferredSize(new Dimension(1000, 340));
+        doctorTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        int[] widths = {55, 180, 190, 135, 220, 115, 145, 150};
+        for (int column = 0; column < widths.length; column++) {
+            doctorTable.getColumnModel().getColumn(column).setPreferredWidth(widths[column]);
+        }
 
         add(mainPanel);
     }
@@ -370,10 +366,8 @@ public class DoctorPanel extends JFrame {
 
         gbc.gridx = x + 1;
 
-        panel.add(
-                component,
-                gbc
-        );
+        if (component instanceof JTextField field) field.setColumns(22);
+        panel.add(component, gbc);
     }
 
 
