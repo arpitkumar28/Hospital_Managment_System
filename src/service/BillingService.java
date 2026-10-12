@@ -23,7 +23,17 @@ public final class BillingService extends AuthorizedService {
         return execute(AuthorizationService.BILLING, () -> bills.addBill(patientId, admissionId, roomCharges,
                 doctorCharges, medicineCharges, otherCharges, paidAmount));
     }
+    public boolean addBill(int patientId, Integer admissionId, BigDecimal roomCharges, BigDecimal doctorCharges,
+                           BigDecimal medicineCharges, BigDecimal otherCharges, BigDecimal paidAmount) {
+        return execute(AuthorizationService.BILLING, () -> bills.addBill(patientId, admissionId, roomCharges,
+                doctorCharges, medicineCharges, otherCharges, paidAmount));
+    }
     public boolean updateBill(int billId, int patientId, int admissionId, BigDecimal roomCharges, BigDecimal doctorCharges,
+                              BigDecimal medicineCharges, BigDecimal otherCharges, BigDecimal paidAmount) {
+        return execute(AuthorizationService.BILLING, () -> bills.updateBill(billId, patientId, admissionId,
+                roomCharges, doctorCharges, medicineCharges, otherCharges, paidAmount));
+    }
+    public boolean updateBill(int billId, int patientId, Integer admissionId, BigDecimal roomCharges, BigDecimal doctorCharges,
                               BigDecimal medicineCharges, BigDecimal otherCharges, BigDecimal paidAmount) {
         return execute(AuthorizationService.BILLING, () -> bills.updateBill(billId, patientId, admissionId,
                 roomCharges, doctorCharges, medicineCharges, otherCharges, paidAmount));

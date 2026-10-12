@@ -5,8 +5,11 @@ import database.DatabaseConnection;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AdmissionDAO {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AdmissionDAO.class);
 
     // =====================================================
     // GET PATIENTS
@@ -43,8 +46,8 @@ public class AdmissionDAO {
             }
 
         } catch (SQLException e) {
-
-            e.printStackTrace();
+            LOGGER.error("Unable to load patients for admissions.", e);
+            throw new IllegalStateException("Unable to load patient choices.", e);
         }
 
         return patients;
@@ -93,8 +96,8 @@ public class AdmissionDAO {
             }
 
         } catch (SQLException e) {
-
-            e.printStackTrace();
+            LOGGER.error("Unable to load available beds for admissions.", e);
+            throw new IllegalStateException("Unable to load available bed choices.", e);
         }
 
         return beds;
@@ -152,8 +155,8 @@ public class AdmissionDAO {
             }
 
         } catch (SQLException e) {
-
-            e.printStackTrace();
+            LOGGER.error("Unable to load admissions.", e);
+            throw new IllegalStateException("Unable to load admission records.", e);
         }
 
         return admissions;
@@ -298,13 +301,13 @@ public class AdmissionDAO {
 
                 try {
                     connection.rollback();
-                } catch (SQLException ignored) {
+                } catch (SQLException rollbackFailure) {
+                    e.addSuppressed(rollbackFailure);
                 }
             }
 
-            e.printStackTrace();
-
-            return false;
+            LOGGER.error("Unable to admit patient {} to bed {}.", patientId, bedId, e);
+            throw new IllegalStateException("Unable to admit patient.", e);
 
         } finally {
 
@@ -312,7 +315,8 @@ public class AdmissionDAO {
 
                 try {
                     connection.close();
-                } catch (SQLException ignored) {
+                } catch (SQLException closeFailure) {
+                    LOGGER.warn("Unable to close admission connection.", closeFailure);
                 }
             }
         }
@@ -448,13 +452,13 @@ public class AdmissionDAO {
 
                 try {
                     connection.rollback();
-                } catch (SQLException ignored) {
+                } catch (SQLException rollbackFailure) {
+                    e.addSuppressed(rollbackFailure);
                 }
             }
 
-            e.printStackTrace();
-
-            return false;
+            LOGGER.error("Unable to discharge admission {}.", admissionId, e);
+            throw new IllegalStateException("Unable to discharge admission.", e);
 
         } finally {
 
@@ -462,7 +466,8 @@ public class AdmissionDAO {
 
                 try {
                     connection.close();
-                } catch (SQLException ignored) {
+                } catch (SQLException closeFailure) {
+                    LOGGER.warn("Unable to close admission connection.", closeFailure);
                 }
             }
         }

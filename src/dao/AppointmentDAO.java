@@ -5,8 +5,11 @@ import database.DatabaseConnection;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AppointmentDAO {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AppointmentDAO.class);
 
     // ================= ADD =================
 
@@ -47,10 +50,9 @@ public class AppointmentDAO {
 
             return statement.executeUpdate() > 0;
 
-        } catch (Exception e) {
-
-            e.printStackTrace();
-            return false;
+        } catch (SQLException e) {
+            LOGGER.error("Unable to save appointment.", e);
+            throw new IllegalStateException("Unable to save appointment.", e);
         }
     }
 
@@ -130,9 +132,9 @@ public class AppointmentDAO {
                 );
             }
 
-        } catch (Exception e) {
-
-            e.printStackTrace();
+        } catch (SQLException e) {
+            LOGGER.error("Unable to load appointments.", e);
+            throw new IllegalStateException("Unable to load appointment records.", e);
         }
 
         return appointments;
@@ -184,10 +186,9 @@ public class AppointmentDAO {
 
             return statement.executeUpdate() > 0;
 
-        } catch (Exception e) {
-
-            e.printStackTrace();
-            return false;
+        } catch (SQLException e) {
+            LOGGER.error("Unable to update appointment {}.", appointmentId, e);
+            throw new IllegalStateException("Unable to update appointment.", e);
         }
     }
 
@@ -216,10 +217,9 @@ public class AppointmentDAO {
 
             return statement.executeUpdate() > 0;
 
-        } catch (Exception e) {
-
-            e.printStackTrace();
-            return false;
+        } catch (SQLException e) {
+            LOGGER.error("Unable to delete appointment {}.", appointmentId, e);
+            throw new IllegalStateException("Unable to delete appointment.", e);
         }
     }
 }

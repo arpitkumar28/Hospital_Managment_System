@@ -22,6 +22,12 @@ import javax.swing.SwingWorker;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.Dimension;
+import java.awt.Frame;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +43,7 @@ public class AdminDashboard extends JFrame {
     private final StatCard appointmentCard = new StatCard("Appointments", "—", AppTheme.ACCENT_COLOR);
     private final StatCard pendingCard = new StatCard("Pending appointments", "—", AppTheme.WARNING_COLOR);
     private final PrimaryButton refreshButton = new PrimaryButton("Refresh data");
+    private final Map<String, JFrame> moduleWindows = new HashMap<>();
     private boolean loadingStatistics;
 
     /** @deprecated Start the dashboard only after authenticating a staff user. */
@@ -205,9 +212,24 @@ public class AdminDashboard extends JFrame {
         }.execute();
     }
 
-    private void openModule(String title, Runnable opener) {
+    private void openModule(String title, Supplier<? extends JFrame> opener) {
         try {
-            opener.run();
+            JFrame existing = moduleWindows.get(title);
+            if (existing != null && existing.isDisplayable()) {
+                if (existing.getState() == Frame.ICONIFIED) existing.setState(Frame.NORMAL);
+                existing.setVisible(true);
+                existing.toFront();
+                existing.requestFocus();
+                return;
+            }
+
+            JFrame window = opener.get();
+            moduleWindows.put(title, window);
+            window.addWindowListener(new WindowAdapter() {
+                @Override public void windowClosed(WindowEvent event) {
+                    moduleWindows.remove(title, window);
+                }
+            });
         } catch (RuntimeException exception) {
             showFriendlyError("Unable to open " + title + ".");
         }

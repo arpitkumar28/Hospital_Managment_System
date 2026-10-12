@@ -5,6 +5,7 @@ import database.DatabaseConnection;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.math.BigDecimal;
@@ -29,7 +30,19 @@ public class BillDAO {
             BigDecimal otherCharges,
             BigDecimal paidAmount
     ) {
+        return addBill(patientId, Integer.valueOf(admissionId), roomCharges, doctorCharges,
+                medicineCharges, otherCharges, paidAmount);
+    }
 
+    public boolean addBill(
+            int patientId,
+            Integer admissionId,
+            BigDecimal roomCharges,
+            BigDecimal doctorCharges,
+            BigDecimal medicineCharges,
+            BigDecimal otherCharges,
+            BigDecimal paidAmount
+    ) {
         BigDecimal totalAmount = calculateTotal(roomCharges, doctorCharges, medicineCharges, otherCharges);
 
         if (!isValidPaidAmount(paidAmount, totalAmount)) {
@@ -44,7 +57,10 @@ public class BillDAO {
                 "(patient_id, admission_id, room_charges, " +
                 "doctor_charges, medicine_charges, other_charges, " +
                 "total_amount, paid_amount, payment_status) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? " +
+                "WHERE EXISTS (SELECT 1 FROM patients WHERE patient_id = ?) " +
+                "AND (CAST(? AS INTEGER) IS NULL OR EXISTS " +
+                "(SELECT 1 FROM admissions WHERE admission_id = ? AND patient_id = ?))";
 
         try (
                 Connection connection =
@@ -55,7 +71,7 @@ public class BillDAO {
         ) {
 
             statement.setInt(1, patientId);
-            statement.setInt(2, admissionId);
+            setNullableInteger(statement, 2, admissionId);
             statement.setBigDecimal(3, roomCharges);
             statement.setBigDecimal(4, doctorCharges);
             statement.setBigDecimal(5, medicineCharges);
@@ -63,10 +79,14 @@ public class BillDAO {
             statement.setBigDecimal(7, totalAmount);
             statement.setBigDecimal(8, paidAmount);
             statement.setString(9, paymentStatus);
+            statement.setInt(10, patientId);
+            setNullableInteger(statement, 11, admissionId);
+            setNullableInteger(statement, 12, admissionId);
+            statement.setInt(13, patientId);
 
             return statement.executeUpdate() > 0;
 
-        } catch (Exception e) {
+        } catch (SQLException e) {
             LOGGER.error("Unable to save bill.", e);
             throw new IllegalStateException("Unable to save bill.", e);
         }
@@ -86,11 +106,24 @@ public class BillDAO {
             BigDecimal otherCharges,
             BigDecimal paidAmount
     ) {
+        return updateBill(billId, patientId, Integer.valueOf(admissionId), roomCharges,
+                doctorCharges, medicineCharges, otherCharges, paidAmount);
+    }
 
+    public boolean updateBill(
+            int billId,
+            int patientId,
+            Integer admissionId,
+            BigDecimal roomCharges,
+            BigDecimal doctorCharges,
+            BigDecimal medicineCharges,
+            BigDecimal otherCharges,
+            BigDecimal paidAmount
+    ) {
         BigDecimal totalAmount = calculateTotal(roomCharges, doctorCharges, medicineCharges, otherCharges);
 
         if (!isValidPaidAmount(paidAmount, totalAmount)) {
-            return false;
+            throw new IllegalArgumentException("Paid amount must be non-negative and no greater than the bill total.");
         }
 
         String paymentStatus =
@@ -107,30 +140,60 @@ public class BillDAO {
                 "total_amount = ?, " +
                 "paid_amount = ?, " +
                 "payment_status = ? " +
-                "WHERE bill_id = ?";
+                "WHERE bill_id = ? " +
+                "AND EXISTS (SELECT 1 FROM patients WHERE patient_id = ?) " +
+                "AND (CAST(? AS INTEGER) IS NULL OR EXISTS " +
+                "(SELECT 1 FROM admissions WHERE admission_id = ? AND patient_id = ?))";
 
-        try (
-                Connection connection =
-                        DatabaseConnection.getConnection();
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                BigDecimal existingPaid;
+                try (PreparedStatement lock = connection.prepareStatement(
+                        "SELECT paid_amount FROM bills WHERE bill_id = ? FOR UPDATE")) {
+                    lock.setInt(1, billId);
+                    try (ResultSet result = lock.executeQuery()) {
+                        if (!result.next()) {
+                            connection.rollback();
+                            return false;
+                        }
+                        existingPaid = result.getBigDecimal("paid_amount");
+                    }
+                }
+                if (paidAmount.compareTo(existingPaid) != 0) {
+                    throw new IllegalArgumentException("Paid amount can only be changed by recording a payment.");
+                }
 
-                PreparedStatement statement =
-                        connection.prepareStatement(sql)
-        ) {
+                int updated;
+                try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                    statement.setInt(1, patientId);
+                    setNullableInteger(statement, 2, admissionId);
+                    statement.setBigDecimal(3, roomCharges);
+                    statement.setBigDecimal(4, doctorCharges);
+                    statement.setBigDecimal(5, medicineCharges);
+                    statement.setBigDecimal(6, otherCharges);
+                    statement.setBigDecimal(7, totalAmount);
+                    statement.setBigDecimal(8, paidAmount);
+                    statement.setString(9, paymentStatus);
+                    statement.setInt(10, billId);
+                    statement.setInt(11, patientId);
+                    setNullableInteger(statement, 12, admissionId);
+                    setNullableInteger(statement, 13, admissionId);
+                    statement.setInt(14, patientId);
+                    updated = statement.executeUpdate();
+                }
+                if (updated == 0) {
+                    connection.rollback();
+                    return false;
+                }
+                connection.commit();
+                return true;
+            } catch (SQLException | RuntimeException exception) {
+                rollback(connection, exception);
+                throw exception;
+            }
 
-            statement.setInt(1, patientId);
-            statement.setInt(2, admissionId);
-            statement.setBigDecimal(3, roomCharges);
-            statement.setBigDecimal(4, doctorCharges);
-            statement.setBigDecimal(5, medicineCharges);
-            statement.setBigDecimal(6, otherCharges);
-            statement.setBigDecimal(7, totalAmount);
-            statement.setBigDecimal(8, paidAmount);
-            statement.setString(9, paymentStatus);
-            statement.setInt(10, billId);
-
-            return statement.executeUpdate() > 0;
-
-        } catch (Exception e) {
+        } catch (SQLException e) {
             LOGGER.error("Unable to update bill {}.", billId, e);
             throw new IllegalStateException("Unable to update bill.", e);
         }
@@ -203,7 +266,7 @@ public class BillDAO {
                 Object[] row = {
                         resultSet.getInt("bill_id"),
                         resultSet.getInt("patient_id"),
-                        resultSet.getInt("admission_id"),
+                        resultSet.getObject("admission_id", Integer.class),
                         resultSet.getBigDecimal("room_charges"),
                         resultSet.getBigDecimal("doctor_charges"),
                         resultSet.getBigDecimal("medicine_charges"),
@@ -268,7 +331,7 @@ public class BillDAO {
                     Object[] row = {
                             resultSet.getInt("bill_id"),
                             resultSet.getInt("patient_id"),
-                            resultSet.getInt("admission_id"),
+                            resultSet.getObject("admission_id", Integer.class),
                             resultSet.getBigDecimal("room_charges"),
                             resultSet.getBigDecimal("doctor_charges"),
                             resultSet.getBigDecimal("medicine_charges"),
@@ -331,7 +394,7 @@ public class BillDAO {
                     return new Object[]{
                             resultSet.getInt("bill_id"),
                             resultSet.getInt("patient_id"),
-                            resultSet.getInt("admission_id"),
+                            resultSet.getObject("admission_id", Integer.class),
                             resultSet.getBigDecimal("room_charges"),
                             resultSet.getBigDecimal("doctor_charges"),
                             resultSet.getBigDecimal("medicine_charges"),
@@ -372,24 +435,38 @@ public class BillDAO {
                 + "THEN 'PAID' ELSE 'PARTIAL' END "
                 + "WHERE bill_id = ? AND paid_amount + ? <= total_amount";
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement balanceStatement = connection.prepareStatement(balanceSql)) {
-            balanceStatement.setInt(1, billId);
-            try (ResultSet balance = balanceStatement.executeQuery()) {
-                if (!balance.next() || !isPaymentWithinBalance(paymentAmount,
-                        balance.getBigDecimal("total_amount"), balance.getBigDecimal("paid_amount"))) {
-                    return false;
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                try (PreparedStatement balanceStatement = connection.prepareStatement(
+                        balanceSql + " FOR UPDATE")) {
+                    balanceStatement.setInt(1, billId);
+                    try (ResultSet balance = balanceStatement.executeQuery()) {
+                        if (!balance.next() || !isPaymentWithinBalance(paymentAmount,
+                                balance.getBigDecimal("total_amount"), balance.getBigDecimal("paid_amount"))) {
+                            connection.rollback();
+                            return false;
+                        }
+                    }
                 }
-            }
-            try (PreparedStatement updateStatement = connection.prepareStatement(updateSql)) {
-                updateStatement.setBigDecimal(1, paymentAmount);
-                updateStatement.setBigDecimal(2, paymentAmount);
-                updateStatement.setInt(3, billId);
-                updateStatement.setBigDecimal(4, paymentAmount);
-                return updateStatement.executeUpdate() > 0;
+                try (PreparedStatement updateStatement = connection.prepareStatement(updateSql)) {
+                    updateStatement.setBigDecimal(1, paymentAmount);
+                    updateStatement.setBigDecimal(2, paymentAmount);
+                    updateStatement.setInt(3, billId);
+                    updateStatement.setBigDecimal(4, paymentAmount);
+                    if (updateStatement.executeUpdate() == 0) {
+                        connection.rollback();
+                        return false;
+                    }
+                }
+                connection.commit();
+                return true;
+            } catch (SQLException | RuntimeException exception) {
+                rollback(connection, exception);
+                throw exception;
             }
 
-        } catch (Exception e) {
+        } catch (SQLException e) {
             LOGGER.error("Unable to record payment for bill {}.", billId, e);
             throw new IllegalStateException("Unable to record bill payment.", e);
         }
@@ -437,6 +514,19 @@ public class BillDAO {
         }
 
         throw new IllegalArgumentException("Bill was not found.");
+    }
+
+    private void setNullableInteger(PreparedStatement statement, int index, Integer value) throws SQLException {
+        if (value == null) statement.setNull(index, java.sql.Types.INTEGER);
+        else statement.setInt(index, value);
+    }
+
+    private void rollback(Connection connection, Exception original) {
+        try {
+            connection.rollback();
+        } catch (SQLException rollbackFailure) {
+            original.addSuppressed(rollbackFailure);
+        }
     }
 
     // =========================================================

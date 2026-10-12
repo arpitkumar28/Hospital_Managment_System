@@ -8,12 +8,16 @@ import org.slf4j.LoggerFactory;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 public class BillingPanel extends JFrame {
     private static final Logger LOGGER = LoggerFactory.getLogger(BillingPanel.class);
@@ -34,6 +38,14 @@ public class BillingPanel extends JFrame {
 
     private JTable billTable;
     private DefaultTableModel tableModel;
+    private TableRowSorter<DefaultTableModel> billSorter;
+    private JButton addButton;
+    private JButton updateButton;
+    private JButton paymentButton;
+    private JButton deleteButton;
+    private JButton clearButton;
+    private JButton refreshButton;
+    private boolean databaseBusy;
 
     private final BillingService billingService = new BillingService();
 
@@ -242,22 +254,22 @@ public class BillingPanel extends JFrame {
 
         buttonPanel.setBackground(Color.WHITE);
 
-        JButton addButton =
+        addButton =
                 createButton("Generate Bill");
 
-        JButton updateButton =
+        updateButton =
                 createButton("Update");
 
-        JButton paymentButton =
+        paymentButton =
                 createButton("Add Payment");
 
-        JButton deleteButton =
+        deleteButton =
                 createButton("Delete");
 
-        JButton clearButton =
+        clearButton =
                 createButton("Clear");
 
-        JButton refreshButton =
+        refreshButton =
                 createButton("Refresh");
 
         buttonPanel.add(addButton);
@@ -343,6 +355,8 @@ public class BillingPanel extends JFrame {
 
         billTable =
                 new JTable(tableModel);
+        billSorter = new TableRowSorter<>(tableModel);
+        billTable.setRowSorter(billSorter);
 
         billTable.setRowHeight(30);
 
@@ -384,11 +398,11 @@ public class BillingPanel extends JFrame {
                             MouseEvent e
                     ) {
 
-                        int row =
+                        int viewRow =
                                 billTable.getSelectedRow();
 
-                        if (row >= 0) {
-                            loadSelectedBill(row);
+                        if (viewRow >= 0) {
+                            loadSelectedBill(billTable.convertRowIndexToModel(viewRow));
                         }
                     }
                 }
@@ -410,10 +424,32 @@ public class BillingPanel extends JFrame {
                 new Color(245, 247, 250)
         );
 
+        JTextField searchField = new JTextField(24);
+        searchField.putClientProperty("JTextField.placeholderText", "Search bills by ID, patient, or status");
+        searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            private void updateFilter() {
+                String text = searchField.getText().trim();
+                billSorter.setRowFilter(text.isEmpty() ? null
+                        : RowFilter.regexFilter("(?i)" + java.util.regex.Pattern.quote(text)));
+            }
+
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent event) { updateFilter(); }
+            @Override public void removeUpdate(javax.swing.event.DocumentEvent event) { updateFilter(); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent event) { updateFilter(); }
+        });
+        JPanel searchPanel = new JPanel(new BorderLayout(8, 0));
+        searchPanel.setOpaque(false);
+        searchPanel.setBorder(new EmptyBorder(0, 0, 8, 0));
+        JLabel searchLabel = new JLabel("Search");
+        searchLabel.setFont(AppTheme.FONT_BODY.deriveFont(Font.BOLD));
+        searchPanel.add(searchLabel, BorderLayout.WEST);
+        searchPanel.add(searchField, BorderLayout.CENTER);
+
         centerPanel.add(
                 scrollPane,
                 BorderLayout.CENTER
         );
+        centerPanel.add(searchPanel, BorderLayout.NORTH);
 
         mainPanel.add(
                 topPanel,
@@ -542,12 +578,7 @@ public class BillingPanel extends JFrame {
 
         BigDecimal total = room.add(doctor).add(medicine).add(other);
 
-        totalAmountField.setText(
-                String.format(
-                        "%.2f",
-                        total
-                )
-        );
+        totalAmountField.setText(total.setScale(2, RoundingMode.UNNECESSARY).toPlainString());
 
         return total;
     }
@@ -576,21 +607,23 @@ public class BillingPanel extends JFrame {
     private int getInteger(
             JTextField field,
             String fieldName
-    ) throws Exception {
+    ) {
 
         if (field.getText()
                 .trim()
                 .isEmpty()) {
 
-            throw new Exception(
-                    fieldName +
-                    " is required."
-            );
+            throw new IllegalArgumentException(fieldName + " is required.");
         }
 
-        return Integer.parseInt(
-                field.getText().trim()
-        );
+        int value = Integer.parseInt(field.getText().trim());
+        if (value <= 0) throw new IllegalArgumentException(fieldName + " must be a positive number.");
+        return value;
+    }
+
+    private Integer getOptionalInteger(JTextField field, String fieldName) {
+        if (field.getText().isBlank()) return null;
+        return getInteger(field, fieldName);
     }
 
     // =========================================================
@@ -607,8 +640,8 @@ public class BillingPanel extends JFrame {
                             "Patient ID"
                     );
 
-            int admissionId =
-                    getInteger(
+            Integer admissionId =
+                    getOptionalInteger(
                             admissionIdField,
                             "Admission ID"
                     );
@@ -677,38 +710,20 @@ public class BillingPanel extends JFrame {
                 return;
             }
 
-            boolean success =
-                    billingService.addBill(
-                            patientId,
-                            admissionId,
-                            room,
-                            doctor,
-                            medicine,
-                            other,
-                            paid
-                    );
-
-            if (success) {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Bill generated successfully.",
-                        "Success",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-
-                loadBills();
-                clearFields();
-
-            } else {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Failed to generate bill.",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE
-                );
-            }
+            runDatabaseTask("save bill",
+                    () -> billingService.addBill(patientId, admissionId, room, doctor, medicine, other, paid),
+                    success -> {
+                        if (success) {
+                            JOptionPane.showMessageDialog(this, "Bill generated successfully.",
+                                    "Success", JOptionPane.INFORMATION_MESSAGE);
+                            clearFields();
+                            loadBills();
+                        } else {
+                            JOptionPane.showMessageDialog(this,
+                                    "Patient or admission was not found, or the admission belongs to a different patient.",
+                                    "Error", JOptionPane.ERROR_MESSAGE);
+                        }
+                    });
 
         } catch (NumberFormatException e) {
 
@@ -743,7 +758,7 @@ public class BillingPanel extends JFrame {
 
             JOptionPane.showMessageDialog(
                     this,
-                    "Unable to save the bill. Verify the details and database connection.",
+                    databaseErrorMessage(e, "save the bill"),
                     "Error",
                     JOptionPane.ERROR_MESSAGE
             );
@@ -770,8 +785,8 @@ public class BillingPanel extends JFrame {
                             "Patient ID"
                     );
 
-            int admissionId =
-                    getInteger(
+            Integer admissionId =
+                    getOptionalInteger(
                             admissionIdField,
                             "Admission ID"
                     );
@@ -828,39 +843,21 @@ public class BillingPanel extends JFrame {
                 return;
             }
 
-            boolean success =
-                    billingService.updateBill(
-                            billId,
-                            patientId,
-                            admissionId,
-                            room,
-                            doctor,
-                            medicine,
-                            other,
-                            paid
-                    );
-
-            if (success) {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Bill updated successfully.",
-                        "Success",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-
-                loadBills();
-                clearFields();
-
-            } else {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Bill update failed.",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE
-                );
-            }
+            runDatabaseTask("update bill",
+                    () -> billingService.updateBill(billId, patientId, admissionId, room, doctor,
+                            medicine, other, paid),
+                    success -> {
+                        if (success) {
+                            JOptionPane.showMessageDialog(this, "Bill updated successfully.",
+                                    "Success", JOptionPane.INFORMATION_MESSAGE);
+                            clearFields();
+                            loadBills();
+                        } else {
+                            JOptionPane.showMessageDialog(this,
+                                    "Bill, patient, or matching admission was not found. The saved payment amount cannot be reduced.",
+                                    "Error", JOptionPane.ERROR_MESSAGE);
+                        }
+                    });
 
         } catch (NumberFormatException e) {
 
@@ -895,7 +892,7 @@ public class BillingPanel extends JFrame {
 
             JOptionPane.showMessageDialog(
                     this,
-                    "Unable to update the bill. Verify the details and database connection.",
+                    databaseErrorMessage(e, "update the bill"),
                     "Error",
                     JOptionPane.ERROR_MESSAGE
             );
@@ -907,206 +904,84 @@ public class BillingPanel extends JFrame {
     // =========================================================
 
     private void addPayment() {
+        try {
+            int billId = getInteger(billIdField, "Bill ID");
+            runDatabaseTask("load bill details", () -> billingService.getBillById(billId),
+                    bill -> processPayment(billId, bill));
+        } catch (IllegalArgumentException exception) {
+            showValidationError(exception.getMessage());
+        }
+    }
+
+    private void processPayment(int billId, Object[] bill) {
+        if (bill == null) {
+            JOptionPane.showMessageDialog(this, "Bill ID " + billId + " was not found.",
+                    "Bill Not Found", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        BigDecimal total = (BigDecimal) bill[7];
+        BigDecimal paid = (BigDecimal) bill[8];
+        BigDecimal remaining = total.subtract(paid);
+        if (remaining.signum() <= 0) {
+            JOptionPane.showMessageDialog(this, "This bill is already fully paid.",
+                    "Payment Complete", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        String input = JOptionPane.showInputDialog(this,
+                String.format("Total Amount: ₹%.2f%nAlready Paid: ₹%.2f%nRemaining: ₹%.2f%n%nEnter payment amount:",
+                        total, paid, remaining), "Make Payment", JOptionPane.PLAIN_MESSAGE);
+        if (input == null) return;
 
         try {
-
-            int billId =
-                    getInteger(
-                            billIdField,
-                            "Bill ID"
-                    );
-
-            // Get latest bill information
-            Object[] bill =
-                    billingService.getBillById(billId);
-
-            if (bill == null) {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Bill ID " + billId + " not found.",
-                        "Bill Not Found",
-                        JOptionPane.WARNING_MESSAGE
-                );
-
-                return;
+            if (input.isBlank()) throw new IllegalArgumentException("Payment amount is required.");
+            BigDecimal amount = new BigDecimal(input.trim()).setScale(2, RoundingMode.UNNECESSARY);
+            if (amount.signum() <= 0) throw new IllegalArgumentException("Payment must be greater than ₹0.");
+            if (amount.compareTo(remaining) > 0) {
+                throw new IllegalArgumentException(String.format(
+                        "Payment cannot exceed the remaining amount of ₹%.2f.", remaining));
             }
+            int confirmation = JOptionPane.showConfirmDialog(this,
+                    String.format("Confirm payment of ₹%.2f?", amount),
+                    "Confirm Payment", JOptionPane.YES_NO_OPTION);
+            if (confirmation != JOptionPane.YES_OPTION) return;
 
-            BigDecimal totalAmount = (BigDecimal) bill[7];
-
-            BigDecimal paidAmount = (BigDecimal) bill[8];
-
-            BigDecimal remainingAmount = totalAmount.subtract(paidAmount);
-
-            // Already paid
-            if (remainingAmount.signum() <= 0) {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "This bill is already fully paid.",
-                        "Payment Complete",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-
-                return;
-            }
-
-            // Payment input
-            String input =
-                    JOptionPane.showInputDialog(
-                            this,
-                            String.format(
-                                    "Total Amount: ₹%.2f%n"
-                                    + "Already Paid: ₹%.2f%n"
-                                    + "Remaining: ₹%.2f%n%n"
-                                    + "Enter payment amount:",
-                                    totalAmount,
-                                    paidAmount,
-                                    remainingAmount
-                            ),
-                            "Make Payment",
-                            JOptionPane.PLAIN_MESSAGE
-                    );
-
-            if (input == null) {
-                return;
-            }
-
-            input = input.trim();
-
-            if (input.isEmpty()) {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Payment amount is required.",
-                        "Validation Error",
-                        JOptionPane.WARNING_MESSAGE
-                );
-
-                return;
-            }
-
-            BigDecimal paymentAmount = new BigDecimal(input).setScale(2, RoundingMode.UNNECESSARY);
-
-            // Positive payment
-            if (paymentAmount.signum() <= 0) {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Payment must be greater than ₹0.",
-                        "Validation Error",
-                        JOptionPane.WARNING_MESSAGE
-                );
-
-                return;
-            }
-
-            // Prevent overpayment
-            if (paymentAmount.compareTo(remainingAmount) > 0) {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        String.format(
-                                "Payment cannot exceed "
-                                + "the remaining amount.%n%n"
-                                + "Remaining Amount: ₹%.2f",
-                                remainingAmount
-                        ),
-                        "Invalid Payment",
-                        JOptionPane.WARNING_MESSAGE
-                );
-
-                return;
-            }
-
-            // Confirm payment
-            int confirmation =
-                    JOptionPane.showConfirmDialog(
-                            this,
-                            String.format(
-                                    "Confirm payment of ₹%.2f?",
-                                    paymentAmount
-                            ),
-                            "Confirm Payment",
-                            JOptionPane.YES_NO_OPTION
-                    );
-
-            if (confirmation !=
-                    JOptionPane.YES_OPTION) {
-
-                return;
-            }
-
-            // Save payment
-            boolean success =
-                    billingService.addPayment(
-                            billId,
-                            paymentAmount
-                    );
-
-            if (success) {
-                boolean refreshed = true;
-                int messageType = JOptionPane.INFORMATION_MESSAGE;
-
-                try {
-                    loadBills();
-                    for (int row = 0; row < tableModel.getRowCount(); row++) {
-                        if (Integer.valueOf(billId).equals(tableModel.getValueAt(row, 0))) {
-                            loadSelectedBill(row);
-                            break;
-                        }
-                    }
-                } catch (RuntimeException refreshError) {
-                    LOGGER.warn("Payment was recorded for bill {}, but the bill list could not be refreshed.",
-                            billId, refreshError);
-                    refreshed = false;
-                    messageType = JOptionPane.WARNING_MESSAGE;
+            runDatabaseTask("record payment", () -> billingService.addPayment(billId, amount), success -> {
+                if (!success) {
+                    JOptionPane.showMessageDialog(this,
+                            "The balance changed or the payment no longer fits. Refresh the bill and try again.",
+                            "Payment Not Recorded", JOptionPane.WARNING_MESSAGE);
+                    return;
                 }
+                loadBills(() -> {
+                    selectBillInTable(billId);
+                    showPaymentRecorded(billId, amount, true);
+                }, () -> showPaymentRecorded(billId, amount, false));
+            });
+        } catch (NumberFormatException exception) {
+            showValidationError("Please enter a valid numeric payment amount.");
+        } catch (ArithmeticException exception) {
+            showValidationError("Payment amounts may have no more than two decimal places.");
+        } catch (IllegalArgumentException exception) {
+            showValidationError(exception.getMessage());
+        }
+    }
 
-                JOptionPane.showMessageDialog(this,
-                        paymentRecordedMessage(billId, paymentAmount, refreshed),
-                        "Payment Recorded", messageType);
+    private void showPaymentRecorded(int billId, BigDecimal amount, boolean refreshed) {
+        JOptionPane.showMessageDialog(this, paymentRecordedMessage(billId, amount, refreshed),
+                "Payment Recorded", refreshed ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.WARNING_MESSAGE);
+    }
 
-            } else {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Payment failed. Please check "
-                                + "the Bill ID and payment amount.",
-                        "Payment Error",
-                        JOptionPane.ERROR_MESSAGE
-                );
+    private void selectBillInTable(int billId) {
+        for (int row = 0; row < tableModel.getRowCount(); row++) {
+            if (Integer.valueOf(billId).equals(tableModel.getValueAt(row, 0))) {
+                int viewRow = billTable.convertRowIndexToView(row);
+                if (viewRow < 0) return;
+                billTable.setRowSelectionInterval(viewRow, viewRow);
+                loadSelectedBill(row);
+                return;
             }
-
-        } catch (NumberFormatException e) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Please enter a valid numeric "
-                            + "payment amount.",
-                    "Input Error",
-                    JOptionPane.WARNING_MESSAGE
-            );
-
-        } catch (ArithmeticException e) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Payment amounts may have no more than two decimal places.",
-                    "Input Error",
-                    JOptionPane.WARNING_MESSAGE
-            );
-
-        } catch (Exception e) {
-
-            LOGGER.error("Unable to process bill payment.", e);
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Unable to process the payment. Verify the amount and database connection.",
-                    "Database Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
         }
     }
 
@@ -1123,36 +998,15 @@ public class BillingPanel extends JFrame {
     // =========================================================
 
     private void deleteBill() {
-
         try {
+            int billId = getInteger(billIdField, "Bill ID");
+            int confirmation = JOptionPane.showConfirmDialog(this,
+                    "Are you sure you want to delete Bill ID " + billId + "?",
+                    "Confirm Delete", JOptionPane.YES_NO_OPTION);
+            if (confirmation != JOptionPane.YES_OPTION) return;
 
-            int billId =
-                    getInteger(
-                            billIdField,
-                            "Bill ID"
-                    );
-
-            int confirmation =
-                    JOptionPane.showConfirmDialog(
-                            this,
-                            "Are you sure you want to delete Bill ID "
-                                    + billId
-                                    + "?",
-                            "Confirm Delete",
-                            JOptionPane.YES_NO_OPTION
-                    );
-
-            if (confirmation !=
-                    JOptionPane.YES_OPTION) {
-
-                return;
-            }
-
-            boolean success =
-                    billingService.deleteBill(billId);
-
-            if (success) {
-
+            runDatabaseTask("delete bill", () -> billingService.deleteBill(billId), success -> {
+                if (success) {
                 JOptionPane.showMessageDialog(
                         this,
                         "Bill deleted successfully.",
@@ -1162,27 +1016,17 @@ public class BillingPanel extends JFrame {
 
                 loadBills();
                 clearFields();
-
-            } else {
-
+                } else {
                 JOptionPane.showMessageDialog(
                         this,
-                        "Bill not found or delete failed.",
+                        "The bill was not found or could not be deleted because it has related records.",
                         "Error",
                         JOptionPane.ERROR_MESSAGE
                 );
-            }
-
-        } catch (Exception e) {
-
-            LOGGER.error("Unable to delete bill.", e);
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Unable to delete the bill. Verify the database connection and try again.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
+                }
+            });
+        } catch (IllegalArgumentException exception) {
+            showValidationError(exception.getMessage());
         }
     }
 
@@ -1191,13 +1035,104 @@ public class BillingPanel extends JFrame {
     // =========================================================
 
     private void loadBills() {
-        List<Object[]> bills =
-                billingService.getAllBills();
+        loadBills(null, null);
+    }
 
-        tableModel.setRowCount(0);
-        for (Object[] bill : bills) {
-            tableModel.addRow(bill);
+    private void loadBills(Runnable loaded, Runnable failed) {
+        runDatabaseTask("load bills", billingService::getAllBills, rows -> {
+            tableModel.setRowCount(0);
+            for (Object[] bill : rows) tableModel.addRow(bill);
+            if (loaded != null) loaded.run();
+        }, error -> {
+            LOGGER.error("Unable to refresh bill list.", error);
+            if (failed != null) {
+                failed.run();
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        databaseErrorMessage(error, "load bills"),
+                        "Refresh Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+    }
+
+    private <T> void runDatabaseTask(String operation, Callable<T> task, Consumer<T> completed) {
+        runDatabaseTask(operation, task, completed, error -> {
+            LOGGER.error("Unable to {}.", operation, error);
+            JOptionPane.showMessageDialog(this, databaseErrorMessage(error, operation),
+                    "Database Error", JOptionPane.ERROR_MESSAGE);
+        });
+    }
+
+    private <T> void runDatabaseTask(String operation, Callable<T> task, Consumer<T> completed,
+                                     Consumer<Throwable> failed) {
+        if (databaseBusy) return;
+        databaseBusy = true;
+        setControlsEnabled(false);
+        new SwingWorker<T, Void>() {
+            @Override protected T doInBackground() throws Exception {
+                return task.call();
+            }
+
+            @Override protected void done() {
+                databaseBusy = false;
+                setControlsEnabled(true);
+                try {
+                    completed.accept(get());
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    failed.accept(exception);
+                } catch (ExecutionException exception) {
+                    failed.accept(exception.getCause() == null ? exception : exception.getCause());
+                }
+            }
+        }.execute();
+    }
+
+    private void setControlsEnabled(boolean enabled) {
+        addButton.setEnabled(enabled);
+        updateButton.setEnabled(enabled);
+        paymentButton.setEnabled(enabled);
+        deleteButton.setEnabled(enabled);
+        clearButton.setEnabled(enabled);
+        refreshButton.setEnabled(enabled);
+        billIdField.setEnabled(enabled);
+        patientIdField.setEnabled(enabled);
+        admissionIdField.setEnabled(enabled);
+        roomChargesField.setEnabled(enabled);
+        doctorChargesField.setEnabled(enabled);
+        medicineChargesField.setEnabled(enabled);
+        otherChargesField.setEnabled(enabled);
+        paidAmountField.setEnabled(enabled);
+        paymentStatusCombo.setEnabled(enabled);
+    }
+
+    private void showValidationError(String message) {
+        JOptionPane.showMessageDialog(this, message, "Validation Error", JOptionPane.WARNING_MESSAGE);
+    }
+
+    private String databaseErrorMessage(Throwable error, String operation) {
+        for (Throwable cause = error; cause != null; cause = cause.getCause()) {
+            if (cause instanceof IllegalArgumentException && cause.getMessage() != null) {
+                return cause.getMessage();
+            }
+            if (cause instanceof java.sql.SQLException sqlException) {
+                String state = sqlException.getSQLState();
+                if ("23503".equals(state)) {
+                    return "The patient or admission reference is invalid. Confirm the patient exists and that the admission belongs to that patient.";
+                }
+                if ("23502".equals(state)) {
+                    return "A required bill field is missing. Review the patient and charge values.";
+                }
+                if ("22003".equals(state) || "22001".equals(state)) {
+                    return "One or more values exceed the database's supported range.";
+                }
+                if (state != null && state.startsWith("08")) {
+                    return "PostgreSQL could not be reached. Check the database service and connection settings.";
+                }
+                break;
+            }
         }
+        return "Unable to " + operation + ". Check the selected records and PostgreSQL connection, then retry.";
     }
 
     // =========================================================
@@ -1220,11 +1155,8 @@ public class BillingPanel extends JFrame {
                 )
         );
 
-        admissionIdField.setText(
-                String.valueOf(
-                        tableModel.getValueAt(row, 2)
-                )
-        );
+        Object admissionId = tableModel.getValueAt(row, 2);
+        admissionIdField.setText(admissionId == null ? "" : String.valueOf(admissionId));
 
         roomChargesField.setText(
                 String.valueOf(
