@@ -95,10 +95,6 @@ public class RoomPanel extends JFrame {
         );
 
 
-        mainPanel.add(
-                titleLabel,
-                BorderLayout.NORTH
-        );
 
 
         // =================================================
@@ -151,7 +147,7 @@ public class RoomPanel extends JFrame {
 
 
         roomNumberField =
-                new JTextField(15);
+                new JTextField(22);
 
         gbc.gridx = 1;
 
@@ -172,7 +168,7 @@ public class RoomPanel extends JFrame {
 
 
         roomTypeField =
-                new JTextField(15);
+                new JTextField(22);
 
         gbc.gridx = 3;
 
@@ -194,7 +190,7 @@ public class RoomPanel extends JFrame {
 
 
         priceField =
-                new JTextField(15);
+                new JTextField(18);
 
         gbc.gridx = 1;
 
@@ -254,10 +250,11 @@ public class RoomPanel extends JFrame {
         );
 
 
-        mainPanel.add(
-                formPanel,
-                BorderLayout.CENTER
-        );
+        JPanel top = new JPanel(new BorderLayout(0, 8));
+        top.setOpaque(false);
+        top.add(titleLabel, BorderLayout.NORTH);
+        top.add(formPanel, BorderLayout.CENTER);
+        mainPanel.add(top, BorderLayout.NORTH);
 
 
         // =================================================
@@ -329,10 +326,14 @@ public class RoomPanel extends JFrame {
         );
 
 
-        mainPanel.add(
-                tablePanel,
-                BorderLayout.SOUTH
-        );
+        mainPanel.add(tablePanel, BorderLayout.CENTER);
+        setMinimumSize(new Dimension(760, 520));
+        scrollPane.setPreferredSize(new Dimension(760, 280));
+        roomTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        int[] widths = {60, 180, 230, 150};
+        for (int column = 0; column < widths.length; column++) {
+            roomTable.getColumnModel().getColumn(column).setPreferredWidth(widths[column]);
+        }
 
 
         // =================================================

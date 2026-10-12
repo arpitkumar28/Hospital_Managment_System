@@ -28,7 +28,7 @@ public class AppSidebar extends JPanel {
         super(new BorderLayout());
         this.selectionHandler = selectionHandler;
         setBackground(AppTheme.SIDEBAR_COLOR);
-        setPreferredSize(new Dimension(238, 600));
+        setPreferredSize(new Dimension(252, 600));
 
         JPanel brand = new JPanel(new BorderLayout());
         brand.setOpaque(false);
@@ -48,7 +48,7 @@ public class AppSidebar extends JPanel {
 
         navigation.setOpaque(false);
         navigation.setLayout(new javax.swing.BoxLayout(navigation, javax.swing.BoxLayout.Y_AXIS));
-        navigation.setBorder(BorderFactory.createEmptyBorder(4, 12, 12, 12));
+        navigation.setBorder(BorderFactory.createEmptyBorder(8, 14, 16, 14));
 
         JButton logout = createButton("Logout");
         logout.setForeground(new Color(255, 215, 215));
@@ -72,7 +72,7 @@ public class AppSidebar extends JPanel {
         });
         navigationButtons.put(label, button);
         navigation.add(button);
-        navigation.add(javax.swing.Box.createVerticalStrut(5));
+        navigation.add(javax.swing.Box.createVerticalStrut(8));
     }
 
     public void setSelected(String label) {
@@ -92,7 +92,7 @@ public class AppSidebar extends JPanel {
         button.setFocusPainted(true);
         button.setFocusable(true);
         button.setBorder(BorderFactory.createEmptyBorder(12, 14, 12, 12));
-        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
+        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         button.getAccessibleContext().setAccessibleName(text);
         styleButton(button, false);

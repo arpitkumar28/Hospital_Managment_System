@@ -345,25 +345,20 @@ public class PatientPanel extends JFrame {
 
         // ================= LAYOUT =================
 
-        mainPanel.add(
-                header,
-                BorderLayout.NORTH
-        );
+        JPanel top = new JPanel(new BorderLayout(0, 8));
+        top.setOpaque(false);
+        top.add(header, BorderLayout.NORTH);
+        top.add(formPanel, BorderLayout.CENTER);
+        mainPanel.add(top, BorderLayout.NORTH);
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
 
-        mainPanel.add(
-                formPanel,
-                BorderLayout.CENTER
-        );
-
-        mainPanel.add(
-                scrollPane,
-                BorderLayout.SOUTH
-        );
-
-        // Give table more space
-        scrollPane.setPreferredSize(
-                new Dimension(1250, 350)
-        );
+        setMinimumSize(new Dimension(900, 650));
+        scrollPane.setPreferredSize(new Dimension(1000, 360));
+        patientTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        int[] widths = {55, 170, 90, 110, 130, 210, 260, 100, 160};
+        for (int column = 0; column < widths.length; column++) {
+            patientTable.getColumnModel().getColumn(column).setPreferredWidth(widths[column]);
+        }
 
         add(mainPanel);
     }
@@ -392,10 +387,12 @@ public class PatientPanel extends JFrame {
 
         gbc.gridx = x + 1;
 
-        panel.add(
-                component,
-                gbc
-        );
+        if (component instanceof JTextField field) {
+            field.setColumns(label.startsWith("Address") ? 32 : 22);
+        } else if (component instanceof JComboBox<?>) {
+            component.setPreferredSize(new Dimension(220, 36));
+        }
+        panel.add(component, gbc);
     }
 
 

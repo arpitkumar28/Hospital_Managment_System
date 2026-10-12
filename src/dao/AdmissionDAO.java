@@ -230,6 +230,16 @@ public class AdmissionDAO {
                 }
             }
 
+            String activeAdmissionSql = "SELECT 1 FROM admissions WHERE bed_id = ? AND discharge_date IS NULL LIMIT 1";
+            try (PreparedStatement statement = connection.prepareStatement(activeAdmissionSql)) {
+                statement.setInt(1, bedId);
+                try (ResultSet rs = statement.executeQuery()) {
+                    if (rs.next()) {
+                        connection.rollback();
+                        return false;
+                    }
+                }
+            }
 
             // ---------------------------------------------
             // Insert admission
@@ -331,6 +341,10 @@ public class AdmissionDAO {
             int admissionId,
             Date dischargeDate) {
 
+        if (dischargeDate == null) {
+            throw new IllegalArgumentException("Discharge date is required.");
+        }
+
         Connection connection = null;
 
         try {
@@ -346,9 +360,10 @@ public class AdmissionDAO {
             // ---------------------------------------------
 
             int bedId;
+            Date admissionDate;
 
             String findSql =
-                    "SELECT bed_id " +
+                    "SELECT bed_id, admission_date " +
                     "FROM admissions " +
                     "WHERE admission_id = ? " +
                     "AND discharge_date IS NULL " +
@@ -382,7 +397,13 @@ public class AdmissionDAO {
                             rs.getInt(
                                     "bed_id"
                             );
+                    admissionDate = rs.getDate("admission_date");
                 }
+            }
+
+            if (dischargeDate.before(admissionDate)) {
+                connection.rollback();
+                return false;
             }
 
 
@@ -413,7 +434,10 @@ public class AdmissionDAO {
                         admissionId
                 );
 
-                statement.executeUpdate();
+                if (statement.executeUpdate() != 1) {
+                    connection.rollback();
+                    return false;
+                }
             }
 
 
@@ -438,7 +462,10 @@ public class AdmissionDAO {
                         bedId
                 );
 
-                statement.executeUpdate();
+                if (statement.executeUpdate() != 1) {
+                    connection.rollback();
+                    return false;
+                }
             }
 
 

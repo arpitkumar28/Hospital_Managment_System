@@ -131,7 +131,7 @@ public class AppointmentPanel extends JFrame {
                 new JComboBox<>();
 
         patientBox.setPreferredSize(
-                new Dimension(220, 30)
+                new Dimension(280, 38)
         );
 
 
@@ -141,7 +141,7 @@ public class AppointmentPanel extends JFrame {
                 new JComboBox<>();
 
         doctorBox.setPreferredSize(
-                new Dimension(220, 30)
+                new Dimension(280, 38)
         );
 
 
@@ -151,7 +151,7 @@ public class AppointmentPanel extends JFrame {
                 new JTextField();
 
         dateField.setPreferredSize(
-                new Dimension(220, 30)
+                new Dimension(220, 38)
         );
 
 
@@ -161,7 +161,7 @@ public class AppointmentPanel extends JFrame {
                 new JTextField();
 
         timeField.setPreferredSize(
-                new Dimension(220, 30)
+                new Dimension(180, 38)
         );
 
 
@@ -171,7 +171,7 @@ public class AppointmentPanel extends JFrame {
                 new JTextField();
 
         reasonField.setPreferredSize(
-                new Dimension(220, 30)
+                new Dimension(260, 38)
         );
 
 
@@ -188,7 +188,7 @@ public class AppointmentPanel extends JFrame {
                 );
 
         statusBox.setPreferredSize(
-                new Dimension(220, 30)
+                new Dimension(220, 38)
         );
 
 
@@ -391,20 +391,20 @@ public class AppointmentPanel extends JFrame {
         // ADD TO MAIN PANEL
         // =================================================
 
-        mainPanel.add(
-                headerPanel,
-                BorderLayout.NORTH
-        );
+        JPanel top = new JPanel(new BorderLayout(0, 8));
+        top.setOpaque(false);
+        top.add(headerPanel, BorderLayout.NORTH);
+        top.add(formPanel, BorderLayout.CENTER);
+        mainPanel.add(top, BorderLayout.NORTH);
+        mainPanel.add(tableScrollPane, BorderLayout.CENTER);
 
-        mainPanel.add(
-                formPanel,
-                BorderLayout.CENTER
-        );
-
-        mainPanel.add(
-                tableScrollPane,
-                BorderLayout.SOUTH
-        );
+        setMinimumSize(new Dimension(900, 620));
+        tableScrollPane.setPreferredSize(new Dimension(1000, 360));
+        appointmentTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        int[] widths = {55, 170, 170, 175, 115, 100, 260, 120};
+        for (int column = 0; column < widths.length; column++) {
+            appointmentTable.getColumnModel().getColumn(column).setPreferredWidth(widths[column]);
+        }
 
 
         add(mainPanel);
