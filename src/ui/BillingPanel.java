@@ -1045,52 +1045,27 @@ public class BillingPanel extends JFrame {
                     );
 
             if (success) {
+                boolean refreshed = true;
+                int messageType = JOptionPane.INFORMATION_MESSAGE;
 
-                BigDecimal newPaidAmount = paidAmount.add(paymentAmount);
-
-                BigDecimal newRemainingAmount = totalAmount.subtract(newPaidAmount);
-
-                String status;
-
-                if (newRemainingAmount.signum() <= 0) {
-
-                    status = "PAID";
-                    newRemainingAmount = BigDecimal.ZERO.setScale(2);
-
-                } else {
-
-                    status = "PARTIAL";
+                try {
+                    loadBills();
+                    for (int row = 0; row < tableModel.getRowCount(); row++) {
+                        if (Integer.valueOf(billId).equals(tableModel.getValueAt(row, 0))) {
+                            loadSelectedBill(row);
+                            break;
+                        }
+                    }
+                } catch (RuntimeException refreshError) {
+                    LOGGER.warn("Payment was recorded for bill {}, but the bill list could not be refreshed.",
+                            billId, refreshError);
+                    refreshed = false;
+                    messageType = JOptionPane.WARNING_MESSAGE;
                 }
 
-                // Update form
-                paidAmountField.setText(
-                        newPaidAmount.toPlainString()
-                );
-
-                paymentStatusCombo.setSelectedItem(
-                        status
-                );
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        String.format(
-                                "Payment successful!%n%n"
-                                + "Bill ID: %d%n"
-                                + "Payment: ₹%.2f%n"
-                                + "Total Paid: ₹%.2f%n"
-                                + "Remaining: ₹%.2f%n"
-                                + "Status: %s",
-                                billId,
-                                paymentAmount,
-                                newPaidAmount,
-                                newRemainingAmount,
-                                status
-                        ),
-                        "Payment Successful",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-
-                loadBills();
+                JOptionPane.showMessageDialog(this,
+                        paymentRecordedMessage(billId, paymentAmount, refreshed),
+                        "Payment Recorded", messageType);
 
             } else {
 
@@ -1133,6 +1108,14 @@ public class BillingPanel extends JFrame {
                     JOptionPane.ERROR_MESSAGE
             );
         }
+    }
+
+    static String paymentRecordedMessage(int billId, BigDecimal paymentAmount, boolean refreshed) {
+        String message = String.format("Payment of ₹%.2f was recorded for Bill ID %d.", paymentAmount, billId);
+        if (!refreshed) {
+            message += "\nThe bill list could not be refreshed. Use Refresh to load current balances.";
+        }
+        return message;
     }
 
     // =========================================================
@@ -1208,14 +1191,11 @@ public class BillingPanel extends JFrame {
     // =========================================================
 
     private void loadBills() {
-
-        tableModel.setRowCount(0);
-
         List<Object[]> bills =
                 billingService.getAllBills();
 
+        tableModel.setRowCount(0);
         for (Object[] bill : bills) {
-
             tableModel.addRow(bill);
         }
     }
