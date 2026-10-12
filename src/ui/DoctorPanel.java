@@ -359,10 +359,9 @@ public class DoctorPanel extends JFrame {
         gbc.gridy = y;
         gbc.gridwidth = 1;
 
-        panel.add(
-                new JLabel(label),
-                gbc
-        );
+        JLabel fieldLabel = new JLabel(label);
+        fieldLabel.setLabelFor(component);
+        panel.add(fieldLabel, gbc);
 
         gbc.gridx = x + 1;
 
