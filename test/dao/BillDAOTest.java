@@ -27,6 +27,12 @@ class BillDAOTest {
     }
 
     @Test
+    void calculateTotalAcceptsMaximumNumericTwelveTwoAmount() {
+        assertEquals(new BigDecimal("9999999999.99"), bills.calculateTotal(
+                new BigDecimal("9999999999.99"), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
+    }
+
+    @Test
     void calculateTotalRejectsNullNegativeAndFractionsOfACent() {
         assertThrows(IllegalArgumentException.class,
                 () -> bills.calculateTotal(null, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
@@ -50,6 +56,12 @@ class BillDAOTest {
     void zeroPaidAmountIsValidForAnUnpaidBill() {
         assertTrue(BillDAO.isValidPaidAmount(BigDecimal.ZERO, new BigDecimal("100.00")));
         assertEquals("PENDING", BillDAO.getPaymentStatus(new BigDecimal("100.00"), BigDecimal.ZERO));
+    }
+
+    @Test
+    void zeroTotalWithZeroPaidAmountRemainsPending() {
+        assertTrue(BillDAO.isValidPaidAmount(BigDecimal.ZERO, BigDecimal.ZERO));
+        assertEquals("PENDING", BillDAO.getPaymentStatus(BigDecimal.ZERO, BigDecimal.ZERO));
     }
 
     @Test
