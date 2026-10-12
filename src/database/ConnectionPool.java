@@ -21,7 +21,7 @@ public final class ConnectionPool {
         try {
             return dataSource().getConnection();
         } catch (IllegalStateException exception) {
-            throw new SQLException("PostgreSQL connection configuration is unavailable.", exception);
+            throw new SQLException("PostgreSQL database configuration is invalid: " + exception.getMessage(), exception);
         }
     }
 
