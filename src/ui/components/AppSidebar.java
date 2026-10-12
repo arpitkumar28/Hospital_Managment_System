@@ -89,10 +89,12 @@ public class AppSidebar extends JPanel {
         JButton button = new JButton(text);
         button.setFont(AppTheme.FONT_BODY.deriveFont(java.awt.Font.BOLD));
         button.setHorizontalAlignment(JButton.LEFT);
-        button.setFocusPainted(false);
+        button.setFocusPainted(true);
+        button.setFocusable(true);
         button.setBorder(BorderFactory.createEmptyBorder(12, 14, 12, 12));
         button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.getAccessibleContext().setAccessibleName(text);
         styleButton(button, false);
         button.addMouseListener(new MouseAdapter() {
             @Override public void mouseEntered(MouseEvent event) {

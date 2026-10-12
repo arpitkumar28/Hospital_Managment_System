@@ -1,6 +1,7 @@
 package ui;
 
 import service.RoomService;
+import ui.theme.AppTheme;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -40,6 +41,7 @@ public class RoomPanel extends JFrame {
         );
 
         createUI();
+        AppTheme.styleLegacyWindow(getContentPane());
 
         loadRooms();
 

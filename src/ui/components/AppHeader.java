@@ -6,6 +6,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.BorderFactory;
 import java.awt.BorderLayout;
+import java.awt.Color;
 
 /** Standard application page header. */
 public class AppHeader extends JPanel {
@@ -18,9 +19,14 @@ public class AppHeader extends JPanel {
         JLabel heading = new JLabel(title);
         heading.setFont(AppTheme.FONT_HEADING);
         heading.setForeground(AppTheme.TEXT_PRIMARY);
-        JLabel user = new JLabel(userName + "  •  " + role);
+        JLabel user = new JLabel(userName + "  ·  " + role);
         user.setFont(AppTheme.FONT_BODY);
-        user.setForeground(AppTheme.TEXT_SECONDARY);
+        user.setForeground(AppTheme.PRIMARY_COLOR);
+        user.setOpaque(true);
+        user.setBackground(new Color(238, 245, 248));
+        user.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppTheme.BORDER_COLOR),
+                BorderFactory.createEmptyBorder(8, 12, 8, 12)));
         add(heading, BorderLayout.WEST);
         add(user, BorderLayout.EAST);
     }

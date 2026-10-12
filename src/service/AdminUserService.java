@@ -123,6 +123,9 @@ public class AdminUserService {
     public void changeRole(long userId, UserRole role) throws AdminOperationException {
         AuthenticatedUser actor = requireAdmin();
         if (role == null) throw new AdminOperationException("Choose a valid staff role.");
+        if (actor.userId() == userId && role != actor.role()) {
+            throw new AdminOperationException("You cannot change your own role while signed in.");
+        }
         try {
             if (!users.updateRole(userId, role, actor.userId())) {
                 throw new AdminOperationException("The role could not be changed. Ensure another active administrator exists.");

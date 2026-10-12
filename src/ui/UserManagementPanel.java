@@ -143,8 +143,18 @@ public final class UserManagementPanel extends JFrame {
         JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT, AppTheme.SPACE_SM, 0));
         filters.setOpaque(false);
         searchField.putClientProperty("JTextField.placeholderText", "Search name, username or email");
+        searchField.getAccessibleContext().setAccessibleName("Search user accounts");
+        searchField.setPreferredSize(new Dimension(280, 38));
         roleFilter.setFont(AppTheme.FONT_BODY);
         statusFilter.setFont(AppTheme.FONT_BODY);
+        roleFilter.getAccessibleContext().setAccessibleName("Filter by role");
+        statusFilter.getAccessibleContext().setAccessibleName("Filter by account status");
+        roleFilter.setPreferredSize(new Dimension(160, 38));
+        statusFilter.setPreferredSize(new Dimension(170, 38));
+        refreshButton.setFont(AppTheme.FONT_BODY.deriveFont(java.awt.Font.BOLD));
+        refreshButton.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        refreshButton.setPreferredSize(new Dimension(108, 38));
+        refreshButton.getAccessibleContext().setAccessibleName("Refresh user accounts");
         filters.add(searchField);
         filters.add(roleFilter);
         filters.add(statusFilter);
@@ -154,14 +164,24 @@ public final class UserManagementPanel extends JFrame {
         table.setRowHeight(42);
         table.setFont(AppTheme.FONT_BODY);
         table.setForeground(AppTheme.TEXT_PRIMARY);
+        table.setBackground(AppTheme.SURFACE_COLOR);
         table.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
         table.setAutoCreateRowSorter(true);
         table.setFillsViewportHeight(true);
         table.setShowGrid(false);
-        table.setIntercellSpacing(new Dimension(0, 1));
+        table.setIntercellSpacing(new Dimension(0, 0));
+        table.setSelectionBackground(new Color(221, 237, 245));
+        table.setSelectionForeground(AppTheme.TEXT_PRIMARY);
         table.getTableHeader().setFont(AppTheme.FONT_SUBHEADING);
         table.getTableHeader().setBackground(new Color(239, 245, 247));
         table.getTableHeader().setForeground(AppTheme.TEXT_PRIMARY);
+        table.getTableHeader().setPreferredSize(new Dimension(0, 42));
+        table.getTableHeader().setReorderingAllowed(false);
+        for (int column = 0; column < table.getColumnCount(); column++) {
+            if (column != 5 && column != 7) {
+                table.getColumnModel().getColumn(column).setCellRenderer(new DirectoryCellRenderer());
+            }
+        }
         table.getColumnModel().getColumn(5).setCellRenderer(new StatusRenderer());
         table.getColumnModel().getColumn(7).setCellRenderer(new ActionRenderer());
         table.getColumnModel().getColumn(7).setCellEditor(new ActionEditor(this::showActions));
@@ -169,7 +189,10 @@ public final class UserManagementPanel extends JFrame {
 
         JPanel tableCard = new JPanel(new BorderLayout());
         tableCard.setOpaque(false);
-        tableCard.add(new JScrollPane(table), BorderLayout.CENTER);
+        JScrollPane tableScroll = new JScrollPane(table);
+        tableScroll.setBorder(BorderFactory.createLineBorder(AppTheme.BORDER_COLOR));
+        tableScroll.getViewport().setBackground(AppTheme.SURFACE_COLOR);
+        tableCard.add(tableScroll, BorderLayout.CENTER);
         buildEmptyState();
         results.setOpaque(false);
         results.add(tableCard, TABLE_CARD);
@@ -270,6 +293,8 @@ public final class UserManagementPanel extends JFrame {
         resultsLayout.show(results, filtered.isEmpty() ? EMPTY_CARD : TABLE_CARD);
         activity.setText(loadedUsers.size() + (loadedUsers.size() == 1 ? " account" : " accounts")
                 + (filtered.size() == loadedUsers.size() ? "" : " · " + filtered.size() + " shown"));
+        activity.setFont(AppTheme.FONT_SMALL);
+        activity.setForeground(AppTheme.TEXT_SECONDARY);
     }
 
     private void showCreateDialog() {
@@ -319,11 +344,17 @@ public final class UserManagementPanel extends JFrame {
             options.add("Approve"); options.add("Reject / Deactivate");
         } else if (user.status() == UserStatus.ACTIVE) {
             if (!isSelf(user)) { options.add("Deactivate"); options.add("Lock"); }
-            options.add("Change Role"); options.add("Reset Password");
+            if (!isSelf(user)) options.add("Change Role");
+            options.add("Reset Password");
         } else if (user.status() == UserStatus.INACTIVE) {
-            options.add("Activate"); options.add("Change Role"); options.add("Reset Password");
+            options.add("Activate");
+            if (!isSelf(user)) options.add("Change Role");
+            options.add("Reset Password");
         } else if (user.status() == UserStatus.LOCKED) {
-            options.add("Unlock"); options.add("Deactivate"); options.add("Change Role"); options.add("Reset Password");
+            options.add("Unlock");
+            if (!isSelf(user)) options.add("Deactivate");
+            if (!isSelf(user)) options.add("Change Role");
+            options.add("Reset Password");
         }
         if (options.isEmpty()) return;
         Object selected = JOptionPane.showInputDialog(this, user.fullName(), "Account Actions",
@@ -459,7 +490,13 @@ public final class UserManagementPanel extends JFrame {
     private interface CheckedOperation { void run() throws AdminUserService.AdminOperationException; }
 
     private final class ActionRenderer extends JButton implements javax.swing.table.TableCellRenderer {
-        ActionRenderer() { setText("Manage"); setFont(AppTheme.FONT_SMALL); }
+        ActionRenderer() {
+            setText("Manage");
+            setFont(AppTheme.FONT_SMALL.deriveFont(java.awt.Font.BOLD));
+            setForeground(AppTheme.PRIMARY_COLOR);
+            setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+            setFocusable(true);
+        }
         @Override public Component getTableCellRendererComponent(JTable table, Object value, boolean selected,
                                                                   boolean focus, int row, int column) {
             setText("Manage");
@@ -486,6 +523,20 @@ public final class UserManagementPanel extends JFrame {
         @Override public Object getCellEditorValue() { return "Manage"; }
     }
 
+    private static final class DirectoryCellRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean selected,
+                                                       boolean focus, int row, int column) {
+            JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, selected, focus, row, column);
+            label.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
+            if (!selected) {
+                label.setBackground(row % 2 == 0 ? AppTheme.SURFACE_COLOR : new Color(248, 251, 252));
+                label.setForeground(AppTheme.TEXT_PRIMARY);
+            }
+            return label;
+        }
+    }
+
     private static final class StatusRenderer extends DefaultTableCellRenderer {
         @Override public Component getTableCellRendererComponent(JTable table, Object value, boolean selected,
                                                                   boolean focus, int row, int column) {
@@ -500,6 +551,9 @@ public final class UserManagementPanel extends JFrame {
                     case LOCKED -> { label.setBackground(new Color(252, 233, 231)); label.setForeground(AppTheme.ERROR_COLOR); }
                     case PENDING -> { label.setBackground(new Color(255, 244, 220)); label.setForeground(AppTheme.WARNING_COLOR); }
                 }
+            } else if (!selected) {
+                label.setBackground(row % 2 == 0 ? AppTheme.SURFACE_COLOR : new Color(248, 251, 252));
+                label.setForeground(AppTheme.TEXT_PRIMARY);
             }
             label.setText(value == null ? "" : value.toString());
             return label;

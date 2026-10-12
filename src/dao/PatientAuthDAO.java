@@ -5,7 +5,7 @@ import java.sql.*;
 import java.util.Optional;
 
 /** Persistence boundary for credentials attached to existing patient records. */
-public final class PatientAuthDAO {
+public class PatientAuthDAO {
     public record Credential(long patientId, String name, String hash, String status, int attempts, Timestamp lockedUntil) { }
     public Optional<Credential> findByIdentifier(String id) throws SQLException {
         String sql="SELECT c.patient_id,p.name,c.password_hash,c.status,c.failed_login_attempts,c.locked_until FROM patient_credentials c JOIN patients p USING(patient_id) WHERE lower(c.username)=lower(?) OR lower(c.email)=lower(?) ORDER BY c.patient_credential_id LIMIT 2";

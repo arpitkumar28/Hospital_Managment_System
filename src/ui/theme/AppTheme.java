@@ -4,19 +4,32 @@ import com.formdev.flatlaf.FlatLightLaf;
 
 import javax.swing.UIManager;
 import javax.swing.BorderFactory;
+import javax.swing.AbstractButton;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.JPasswordField;
+import javax.swing.table.JTableHeader;
 import javax.swing.border.Border;
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Font;
+import java.awt.Dimension;
 
 /** Shared visual tokens and Look & Feel configuration for the Swing application. */
 public final class AppTheme {
 
-    public static final Color PRIMARY_COLOR = new Color(22, 78, 99);
-    public static final Color SECONDARY_COLOR = new Color(36, 128, 140);
-    public static final Color ACCENT_COLOR = new Color(13, 148, 136);
+    public static final Color PRIMARY_COLOR = new Color(23, 59, 94);
+    public static final Color SECONDARY_COLOR = new Color(36, 107, 138);
+    public static final Color ACCENT_COLOR = new Color(17, 132, 145);
     public static final Color BACKGROUND_COLOR = new Color(243, 247, 250);
     public static final Color SURFACE_COLOR = Color.WHITE;
-    public static final Color SIDEBAR_COLOR = new Color(20, 53, 70);
+    public static final Color SIDEBAR_COLOR = new Color(18, 39, 62);
     public static final Color TEXT_PRIMARY = new Color(31, 48, 61);
     public static final Color TEXT_SECONDARY = new Color(102, 119, 132);
     public static final Color BORDER_COLOR = new Color(222, 231, 236);
@@ -53,6 +66,98 @@ public final class AppTheme {
         UIManager.put("TextComponent.arc", RADIUS_SM);
         UIManager.put("Component.focusColor", ACCENT_COLOR);
         UIManager.put("Component.borderColor", BORDER_COLOR);
+        UIManager.put("Button.default.background", PRIMARY_COLOR);
+        UIManager.put("Button.default.foreground", SURFACE_COLOR);
+        UIManager.put("Table.rowHeight", 40);
+        UIManager.put("Table.selectionBackground", new Color(221, 237, 245));
+        UIManager.put("Table.selectionForeground", TEXT_PRIMARY);
+        UIManager.put("Table.alternateRowColor", new Color(248, 251, 252));
+        UIManager.put("TableHeader.background", new Color(236, 243, 247));
+        UIManager.put("TableHeader.foreground", TEXT_PRIMARY);
+        UIManager.put("ComboBox.background", SURFACE_COLOR);
+        UIManager.put("TextField.background", SURFACE_COLOR);
+        UIManager.put("PasswordField.background", SURFACE_COLOR);
+        UIManager.put("Button.focusedBorderColor", ACCENT_COLOR);
+        UIManager.put("Button.hoverBackground", new Color(36, 82, 121));
+        UIManager.put("Button.pressedBackground", new Color(17, 47, 77));
+        UIManager.put("Button.disabledText", TEXT_SECONDARY);
+        UIManager.put("Component.disabledForeground", TEXT_SECONDARY);
+        UIManager.put("Component.focusWidth", 2);
+        UIManager.put("ScrollBar.width", 12);
+    }
+
+    /** Applies shared typography, input sizing, and table treatment to legacy CRUD screens. */
+    public static void styleLegacyWindow(Container root) {
+        styleTree(root);
+    }
+
+    private static void styleTree(Component component) {
+        if (component instanceof Container container) {
+            for (Component child : container.getComponents()) {
+                styleTree(child);
+            }
+        }
+        if (!(component instanceof JComponent swing)) return;
+
+        if (component instanceof JPanel && new Color(245, 247, 250).equals(component.getBackground())) {
+            component.setBackground(BACKGROUND_COLOR);
+        } else if (component instanceof JPanel && (new Color(30, 55, 80).equals(component.getBackground())
+                || new Color(34, 65, 94).equals(component.getBackground()))) {
+            component.setBackground(SIDEBAR_COLOR);
+        }
+
+        if (component instanceof JTable table) {
+            table.setFont(FONT_BODY);
+            table.setForeground(TEXT_PRIMARY);
+            table.setBackground(SURFACE_COLOR);
+            table.setSelectionBackground(new Color(221, 237, 245));
+            table.setSelectionForeground(TEXT_PRIMARY);
+            table.setRowHeight(Math.max(table.getRowHeight(), 40));
+            table.setShowGrid(false);
+            table.setIntercellSpacing(new Dimension(0, 0));
+            table.setFillsViewportHeight(true);
+            table.setGridColor(BORDER_COLOR);
+            table.setFocusable(true);
+        } else if (component instanceof JTableHeader header) {
+            header.setFont(FONT_SUBHEADING);
+            header.setForeground(TEXT_PRIMARY);
+            header.setBackground(new Color(236, 243, 247));
+            header.setPreferredSize(new Dimension(0, 42));
+            header.setReorderingAllowed(false);
+        } else if (component instanceof JTextField || component instanceof JPasswordField
+                || component instanceof JComboBox<?>) {
+            component.setFont(FONT_BODY);
+            component.setForeground(TEXT_PRIMARY);
+            Dimension size = component.getPreferredSize();
+            if (size.height < 40) component.setPreferredSize(new Dimension(size.width, 40));
+            swing.setFocusable(true);
+        } else if (component instanceof AbstractButton button) {
+            String label = button.getText() == null ? "" : button.getText().trim().toLowerCase(java.util.Locale.ROOT);
+            button.setFont(FONT_BUTTON);
+            button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            button.setFocusPainted(true);
+            button.setFocusable(true);
+            if (label.contains("delete") || label.contains("remove")) {
+                button.setBackground(ERROR_COLOR);
+                button.setForeground(SURFACE_COLOR);
+            } else if (label.contains("add") || label.contains("book")
+                    || label.contains("admit") || label.contains("discharge")
+                    || label.contains("update") || label.contains("save")) {
+                button.setBackground(PRIMARY_COLOR);
+                button.setForeground(SURFACE_COLOR);
+            }
+        } else if (component instanceof javax.swing.JLabel label) {
+            Font current = label.getFont();
+            if (current != null && "Arial".equalsIgnoreCase(current.getFamily())) {
+                Font replacement = current.getSize() >= 24 ? FONT_TITLE
+                        : current.getSize() >= 18 ? FONT_HEADING : FONT_BODY;
+                label.setFont(replacement.deriveFont(current.getStyle()));
+            }
+        }
+
+        if (component instanceof JScrollPane scrollPane) {
+            scrollPane.getViewport().setBackground(SURFACE_COLOR);
+        }
     }
 
     public static Border pagePadding() {

@@ -8,6 +8,7 @@ import security.SessionManager;
 import service.AuthService;
 import ui.components.AppHeader;
 import ui.components.AppSidebar;
+import ui.components.PrimaryButton;
 import ui.components.StatCard;
 import ui.theme.AppTheme;
 
@@ -21,9 +22,12 @@ import javax.swing.SwingWorker;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.Dimension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Main administrative shell and database-backed operational overview. */
 public class AdminDashboard extends JFrame {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AdminDashboard.class);
     private final DashboardService dashboardService = new DashboardService();
     private final AuthenticatedUser currentUser;
     private final AuthorizationService authorization = new AuthorizationService();
@@ -32,6 +36,7 @@ public class AdminDashboard extends JFrame {
     private final StatCard doctorCard = new StatCard("Total doctors", "—", AppTheme.SECONDARY_COLOR);
     private final StatCard appointmentCard = new StatCard("Appointments", "—", AppTheme.ACCENT_COLOR);
     private final StatCard pendingCard = new StatCard("Pending appointments", "—", AppTheme.WARNING_COLOR);
+    private final PrimaryButton refreshButton = new PrimaryButton("Refresh data");
     private boolean loadingStatistics;
 
     /** @deprecated Start the dashboard only after authenticating a staff user. */
@@ -99,14 +104,6 @@ public class AdminDashboard extends JFrame {
         JLabel subtitle = new JLabel("Hospital overview and operational summary");
         subtitle.setFont(AppTheme.FONT_BODY);
         subtitle.setForeground(AppTheme.TEXT_SECONDARY);
-        JPanel text = new JPanel();
-        text.setOpaque(false);
-        text.setLayout(new javax.swing.BoxLayout(text, javax.swing.BoxLayout.Y_AXIS));
-        text.add(title);
-        text.add(javax.swing.Box.createVerticalStrut(AppTheme.SPACE_XS));
-        text.add(subtitle);
-        intro.add(text, BorderLayout.WEST);
-
         JPanel cards = new JPanel(new GridLayout(2, 2, AppTheme.SPACE_LG, AppTheme.SPACE_LG));
         cards.setOpaque(false);
         cards.add(patientCard);
@@ -114,8 +111,40 @@ public class AdminDashboard extends JFrame {
         cards.add(appointmentCard);
         cards.add(pendingCard);
 
+        JPanel introCopy = new JPanel();
+        introCopy.setOpaque(false);
+        introCopy.setLayout(new javax.swing.BoxLayout(introCopy, javax.swing.BoxLayout.Y_AXIS));
+        introCopy.add(title);
+        introCopy.add(javax.swing.Box.createVerticalStrut(AppTheme.SPACE_XS));
+        introCopy.add(subtitle);
+        intro.add(introCopy, BorderLayout.WEST);
+        if (currentUser.role() == UserRole.ADMIN) {
+            refreshButton.addActionListener(event -> refreshStatistics());
+            intro.add(refreshButton, BorderLayout.EAST);
+        }
+
+        JPanel overview = new JPanel(new BorderLayout(0, AppTheme.SPACE_MD));
+        overview.setOpaque(false);
+        JLabel sectionTitle = new JLabel(currentUser.role() == UserRole.ADMIN
+                ? "Live operational overview" : "Your workspace");
+        sectionTitle.setFont(AppTheme.FONT_SUBHEADING);
+        sectionTitle.setForeground(AppTheme.TEXT_PRIMARY);
+        overview.add(sectionTitle, BorderLayout.NORTH);
+        if (currentUser.role() == UserRole.ADMIN) {
+            overview.add(cards, BorderLayout.CENTER);
+        } else {
+            JLabel guidance = new JLabel("Choose an authorized area from the navigation to continue.");
+            guidance.setFont(AppTheme.FONT_BODY);
+            guidance.setForeground(AppTheme.TEXT_SECONDARY);
+            guidance.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(AppTheme.BORDER_COLOR),
+                    BorderFactory.createEmptyBorder(AppTheme.SPACE_LG, AppTheme.SPACE_LG,
+                            AppTheme.SPACE_LG, AppTheme.SPACE_LG)));
+            overview.add(guidance, BorderLayout.CENTER);
+        }
+
         content.add(intro, BorderLayout.NORTH);
-        content.add(cards, BorderLayout.CENTER);
+        content.add(overview, BorderLayout.CENTER);
         return content;
     }
 
@@ -141,14 +170,11 @@ public class AdminDashboard extends JFrame {
 
     private void refreshStatistics() {
         if (currentUser.role() != UserRole.ADMIN) {
-            patientCard.setValue("—");
-            doctorCard.setValue("—");
-            appointmentCard.setValue("—");
-            pendingCard.setValue("—");
             return;
         }
         if (loadingStatistics) return;
         loadingStatistics = true;
+        refreshButton.setEnabled(false);
         patientCard.setValue("Loading…");
         doctorCard.setValue("Loading…");
         appointmentCard.setValue("Loading…");
@@ -160,6 +186,7 @@ public class AdminDashboard extends JFrame {
             }
             @Override protected void done() {
                 loadingStatistics = false;
+                refreshButton.setEnabled(true);
                 try {
                     int[] counts = get();
                     patientCard.setValue(String.valueOf(counts[0]));
@@ -167,6 +194,7 @@ public class AdminDashboard extends JFrame {
                     appointmentCard.setValue(String.valueOf(counts[2]));
                     pendingCard.setValue(String.valueOf(counts[3]));
                 } catch (Exception exception) {
+                    LOGGER.error("Unable to load dashboard information.", exception);
                     patientCard.setValue("—");
                     doctorCard.setValue("—");
                     appointmentCard.setValue("—");

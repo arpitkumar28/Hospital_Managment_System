@@ -1,6 +1,7 @@
 package ui;
 
 import service.AppointmentService;
+import ui.theme.AppTheme;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +48,7 @@ public class AppointmentPanel extends JFrame {
         setLocationRelativeTo(null);
 
         createUI();
+        AppTheme.styleLegacyWindow(getContentPane());
 
         loadPatients();
         loadDoctors();

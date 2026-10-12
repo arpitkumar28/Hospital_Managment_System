@@ -55,7 +55,10 @@ public class RegistrationFrame extends JFrame {
         JPanel scroller = new JPanel(new GridBagLayout());
         scroller.setBackground(AppTheme.SURFACE_COLOR);
         JPanel form = new JPanel(new GridBagLayout());
-        form.setOpaque(false);
+        form.setBackground(AppTheme.SURFACE_COLOR);
+        form.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppTheme.BORDER_COLOR),
+                BorderFactory.createEmptyBorder(24, 28, 24, 28)));
         form.setPreferredSize(new Dimension(430, 650));
         GridBagConstraints c = new GridBagConstraints();
         c.gridx = 0; c.gridy = 0; c.weightx = 1; c.fill = GridBagConstraints.HORIZONTAL;
@@ -130,11 +133,13 @@ public class RegistrationFrame extends JFrame {
         JLabel label = new JLabel(labelText);
         label.setFont(AppTheme.FONT_BODY.deriveFont(java.awt.Font.BOLD));
         label.setForeground(AppTheme.TEXT_PRIMARY);
+        label.setLabelFor(field);
         panel.add(label, c);
         c.gridy++;
         c.insets = new Insets(0, 0, 5, 0);
         field.setFont(AppTheme.FONT_BODY);
-        field.setPreferredSize(new Dimension(0, 39));
+        field.setPreferredSize(new Dimension(0, 42));
+        field.getAccessibleContext().setAccessibleName(labelText);
         panel.add(field, c);
     }
 

@@ -20,6 +20,7 @@ public class StatCard extends JPanel {
                 BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(AppTheme.BORDER_COLOR),
                         BorderFactory.createEmptyBorder(20, 20, 20, 20))));
+        setPreferredSize(new java.awt.Dimension(230, 150));
 
         JLabel titleLabel = new JLabel(title);
         titleLabel.setFont(AppTheme.FONT_SUBHEADING);

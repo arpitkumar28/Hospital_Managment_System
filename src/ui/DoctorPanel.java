@@ -1,6 +1,7 @@
 package ui;
 
 import service.DoctorService;
+import ui.theme.AppTheme;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -36,6 +37,7 @@ public class DoctorPanel extends JFrame {
         setLocationRelativeTo(null);
 
         createUI();
+        AppTheme.styleLegacyWindow(getContentPane());
         loadDoctors();
 
         setVisible(true);
