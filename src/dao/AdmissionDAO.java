@@ -70,6 +70,8 @@ public class AdmissionDAO {
                 "FROM beds b " +
                 "JOIN rooms r ON b.room_id = r.room_id " +
                 "WHERE b.status = 'AVAILABLE' " +
+                "AND NOT EXISTS (SELECT 1 FROM admissions a " +
+                "WHERE a.bed_id = b.bed_id AND a.discharge_date IS NULL) " +
                 "ORDER BY r.room_number, b.bed_number";
 
         try (
