@@ -10,6 +10,7 @@ import ui.components.PrimaryButton;
 import ui.theme.AppTheme;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import java.awt.*;
 import java.util.Arrays;
 
@@ -19,7 +20,6 @@ public class LoginFrame extends JFrame {
     private static final String[] DESCRIPTIONS = {"Administrator access", "Front desk and patient operations",
             "Clinical and appointment workspace", "Billing and financial workspace"};
     private String selectedRole;
-    private JPanel content;
     private final JTextField identifier = new JTextField();
     private final JPasswordField password = new JPasswordField();
     private final PrimaryButton signIn = new PrimaryButton("Sign in");
@@ -35,145 +35,277 @@ public class LoginFrame extends JFrame {
     }
 
     private void showWelcome() {
-        JPanel root = new JPanel(new BorderLayout());
-        root.setBackground(AppTheme.BACKGROUND_COLOR);
-        JPanel header = new JPanel(new BorderLayout());
-        header.setOpaque(false);
-        header.setBorder(BorderFactory.createEmptyBorder(26, 42, 16, 42));
-        JLabel brand = new JLabel("✚   Hospital Management System");
-        brand.setFont(AppTheme.FONT_HEADING);
-        brand.setForeground(AppTheme.PRIMARY_COLOR);
-        JLabel subtitle = new JLabel("Secure Healthcare Management");
-        subtitle.setFont(AppTheme.FONT_SMALL);
-        subtitle.setForeground(AppTheme.TEXT_SECONDARY);
-        JPanel brandBlock = new JPanel();
-        brandBlock.setOpaque(false);
-        brandBlock.setLayout(new BoxLayout(brandBlock, BoxLayout.Y_AXIS));
-        brandBlock.add(brand);
-        brandBlock.add(Box.createVerticalStrut(5));
-        brandBlock.add(subtitle);
-        header.add(brandBlock, BorderLayout.WEST);
-        root.add(header, BorderLayout.NORTH);
-
-        JPanel center = new JPanel(new GridBagLayout());
-        center.setOpaque(false);
         JPanel content = new JPanel(new GridBagLayout());
         content.setOpaque(false);
-        content.setPreferredSize(new Dimension(760, 450));
+        content.setBorder(BorderFactory.createEmptyBorder(24, 36, 24, 36));
         GridBagConstraints c = new GridBagConstraints();
-        c.gridx = 0; c.gridy = 0; c.gridwidth = 2; c.weightx = 1;
-        c.fill = GridBagConstraints.HORIZONTAL; c.insets = new Insets(0, 12, 10, 12);
+        c.gridx = 0;
+        c.gridy = 0;
+        c.gridwidth = 2;
+        c.weightx = 1;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.insets = new Insets(0, 10, 8, 10);
         JLabel title = new JLabel("Welcome to Hospital Management System");
-        title.setFont(AppTheme.FONT_TITLE.deriveFont(Font.BOLD, 25f));
+        title.setHorizontalAlignment(SwingConstants.CENTER);
+        title.setFont(AppTheme.FONT_TITLE.deriveFont(Font.BOLD, 28f));
         title.setForeground(AppTheme.TEXT_PRIMARY);
         content.add(title, c);
         c.gridy++;
-        JLabel support = new JLabel("<html>Secure access to your healthcare workspace.<br>Choose how you would like to sign in to continue.</html>");
+        JLabel support = new JLabel(
+                "<html><div style='text-align:center'>Secure access to your healthcare workspace. "
+                        + "Choose how you would like to sign in.</div></html>");
+        support.setHorizontalAlignment(SwingConstants.CENTER);
         support.setFont(AppTheme.FONT_BODY);
         support.setForeground(AppTheme.TEXT_SECONDARY);
         content.add(support, c);
 
-        c.gridy++; c.gridwidth = 1; c.weighty = 1; c.fill = GridBagConstraints.BOTH;
-        c.insets = new Insets(28, 12, 12, 12);
-        content.add(portalCard("✚", "STAFF PORTAL", "Admin, Receptionist, Doctor, Accountant", this::showRoles), c);
+        c.gridy++;
+        c.gridwidth = 1;
+        c.weighty = 1;
+        c.fill = GridBagConstraints.BOTH;
+        c.insets = new Insets(30, 10, 18, 10);
+        content.add(portalCard("✚", "Staff Portal", "Secure tools for hospital staff", this::showRoles), c);
         c.gridx = 1;
-        content.add(portalCard("♡", "PATIENT PORTAL", "Appointments and hospital information", () -> {
+        content.add(portalCard("♡", "Patient Portal", "Access your patient workspace", () -> {
             selectedRole = "PATIENT";
             showLogin();
         }), c);
 
-        c.gridx = 0; c.gridy++; c.gridwidth = 2; c.weighty = 0; c.fill = GridBagConstraints.NONE;
-        c.anchor = GridBagConstraints.CENTER; c.insets = new Insets(14, 12, 0, 12);
-        JButton exit = link("Exit");
+        c.gridx = 0;
+        c.gridy++;
+        c.gridwidth = 2;
+        c.weighty = 0;
+        c.fill = GridBagConstraints.NONE;
+        c.anchor = GridBagConstraints.CENTER;
+        c.insets = new Insets(0, 10, 0, 10);
+        JButton exit = link("Exit application");
         exit.setForeground(AppTheme.TEXT_SECONDARY);
         exit.addActionListener(e -> dispose());
         content.add(exit, c);
-        center.add(content);
-        root.add(center, BorderLayout.CENTER);
 
-        JLabel footer = new JLabel("Authorized access only  •  Your session is protected", SwingConstants.CENTER);
-        footer.setFont(AppTheme.FONT_SMALL);
-        footer.setForeground(AppTheme.TEXT_SECONDARY);
-        footer.setBorder(BorderFactory.createEmptyBorder(12, 12, 20, 12));
-        root.add(footer, BorderLayout.SOUTH);
-        setContentPane(root);
+        setScreen(content);
         getRootPane().setDefaultButton(null);
-        revalidate(); repaint();
     }
 
     private JButton portalCard(String icon, String title, String description, Runnable action) {
         JButton card = new JButton();
-        card.setLayout(new BorderLayout(14, 8));
+        card.setLayout(new BorderLayout(16, 8));
         card.setHorizontalAlignment(SwingConstants.LEFT);
         card.setBackground(Color.WHITE);
         card.setOpaque(true);
         card.setFocusPainted(true);
+        card.setFont(AppTheme.FONT_BODY);
         card.getAccessibleContext().setAccessibleName(title + " portal");
         card.getAccessibleContext().setAccessibleDescription(description);
         card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(AppTheme.BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(22, 22, 22, 22)));
+        card.setBorder(cardBorder(AppTheme.BORDER_COLOR, 1, 24, 22));
         JLabel glyph = new JLabel(icon, SwingConstants.CENTER);
         glyph.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 30));
         glyph.setForeground(AppTheme.SECONDARY_COLOR);
-        glyph.setPreferredSize(new Dimension(54, 54));
+        glyph.setPreferredSize(new Dimension(58, 58));
         glyph.setOpaque(true);
-        glyph.setBackground(new Color(232, 246, 247));
+        glyph.setBackground(new Color(230, 243, 247));
         JPanel text = new JPanel();
         text.setOpaque(false);
         text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
         JLabel heading = new JLabel(title);
-        heading.setFont(AppTheme.FONT_SUBHEADING);
+        heading.setFont(AppTheme.FONT_HEADING);
         heading.setForeground(AppTheme.TEXT_PRIMARY);
-        JLabel detail = new JLabel("<html><div style='width:205px'>" + description + "</div></html>");
+        JLabel detail = new JLabel("<html><div style='width:210px'>" + description + "</div></html>");
         detail.setFont(AppTheme.FONT_BODY);
         detail.setForeground(AppTheme.TEXT_SECONDARY);
-        detail.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0));
+        detail.setBorder(BorderFactory.createEmptyBorder(7, 0, 0, 0));
         text.add(heading);
         text.add(detail);
         JLabel arrow = new JLabel("→");
         arrow.setFont(AppTheme.FONT_HEADING);
         arrow.setForeground(AppTheme.SECONDARY_COLOR);
+        arrow.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 0));
         card.add(glyph, BorderLayout.WEST);
         card.add(text, BorderLayout.CENTER);
         card.add(arrow, BorderLayout.EAST);
         card.addActionListener(e -> action.run());
         card.addChangeListener(e -> {
-            Color line = card.getModel().isPressed() ? AppTheme.PRIMARY_COLOR
-                    : card.getModel().isRollover() || card.hasFocus() ? AppTheme.SECONDARY_COLOR : AppTheme.BORDER_COLOR;
-            card.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(line,
-                    card.getModel().isRollover() || card.hasFocus() ? 2 : 1),
-                    BorderFactory.createEmptyBorder(21, 21, 21, 21)));
+            boolean emphasized = card.getModel().isRollover() || card.hasFocus() || card.getModel().isPressed();
+            card.setBorder(cardBorder(card.getModel().isPressed() ? AppTheme.PRIMARY_COLOR
+                    : emphasized ? AppTheme.SECONDARY_COLOR : AppTheme.BORDER_COLOR, emphasized ? 2 : 1, 23, 21));
         });
         return card;
     }
 
     private void showRoles() {
         selectedRole = null;
-        JPanel area = new JPanel(new GridBagLayout()); area.setBackground(AppTheme.BACKGROUND_COLOR);
-        JPanel panel = new JPanel(new GridBagLayout()); panel.setOpaque(false); panel.setPreferredSize(new Dimension(880, 620));
-        GridBagConstraints c = new GridBagConstraints(); c.gridx=0; c.gridy=0; c.gridwidth=2; c.fill=GridBagConstraints.HORIZONTAL; c.weightx=1; c.insets=new Insets(6,8,16,8);
-        JLabel brand = new JLabel("HOSPITAL MANAGEMENT SYSTEM"); brand.setFont(AppTheme.FONT_BODY.deriveFont(Font.BOLD)); brand.setForeground(AppTheme.SECONDARY_COLOR); panel.add(brand,c);
-        c.gridy++; JLabel title = new JLabel("How would you like to sign in?"); title.setFont(AppTheme.FONT_TITLE); title.setForeground(AppTheme.TEXT_PRIMARY); panel.add(title,c);
-        c.gridy++; JLabel sub = new JLabel("Choose the workspace that matches your account."); sub.setFont(AppTheme.FONT_BODY); sub.setForeground(AppTheme.TEXT_SECONDARY); panel.add(sub,c);
-        c.gridy++; c.gridwidth=1; c.insets=new Insets(10,8,10,8); c.fill=GridBagConstraints.BOTH; c.weighty=1;
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createEmptyBorder(18, 42, 24, 42));
+        GridBagConstraints c = new GridBagConstraints();
+        c.gridx = 0;
+        c.gridy = 0;
+        c.gridwidth = 2;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.weightx = 1;
+        c.insets = new Insets(0, 8, 8, 8);
+        JLabel title = new JLabel("Choose your staff workspace");
+        title.setHorizontalAlignment(SwingConstants.CENTER);
+        title.setFont(AppTheme.FONT_TITLE);
+        title.setForeground(AppTheme.TEXT_PRIMARY);
+        panel.add(title, c);
+        c.gridy++;
+        JLabel sub = new JLabel("Select the role associated with your account to continue.");
+        sub.setHorizontalAlignment(SwingConstants.CENTER);
+        sub.setFont(AppTheme.FONT_BODY);
+        sub.setForeground(AppTheme.TEXT_SECONDARY);
+        c.insets = new Insets(0, 8, 18, 8);
+        panel.add(sub, c);
+
+        c.gridy++;
+        c.gridwidth = 1;
+        c.fill = GridBagConstraints.BOTH;
+        c.weighty = 1;
+        c.insets = new Insets(8, 8, 8, 8);
         ButtonGroup group = new ButtonGroup();
-        PrimaryButton next=new PrimaryButton("Continue");
+        PrimaryButton next = new PrimaryButton("Continue");
         next.setEnabled(false);
-        for(int i=0;i<ROLES.length;i++) { final int index=i; JToggleButton card=new JToggleButton("<html><div style='width:245px;padding:10px'><b>"+ROLES[i]+"</b><br><br><span style='font-size:small'>"+DESCRIPTIONS[i]+"</span></div></html>");
-            card.setHorizontalAlignment(SwingConstants.LEFT); card.setFont(AppTheme.FONT_BODY); card.setForeground(AppTheme.TEXT_PRIMARY); card.setBackground(Color.WHITE); card.setFocusPainted(true); card.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(AppTheme.BORDER_COLOR,1),BorderFactory.createEmptyBorder(9,12,9,12))); card.setPreferredSize(new Dimension(275,120));
-            card.getAccessibleContext().setAccessibleName(ROLES[i] + " login");
-            card.getAccessibleContext().setAccessibleDescription(DESCRIPTIONS[i]);
-            card.setText("<html><div style='width:225px;padding:6px'><span style='font-size:20pt'>" + roleIcon(ROLES[i]) + "</span><br><b>" + ROLES[i] + "</b><br><span style='font-size:small'>" + DESCRIPTIONS[i] + "</span></div></html>");
-            card.addChangeListener(e->{card.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(card.isSelected()?AppTheme.ACCENT_COLOR:(card.getModel().isRollover()||card.hasFocus()?AppTheme.SECONDARY_COLOR:AppTheme.BORDER_COLOR),card.isSelected()||card.hasFocus()?2:1),BorderFactory.createEmptyBorder(9,12,9,12)));});
-            card.addActionListener(e->{selectedRole=ROLES[index];next.setEnabled(true);}); group.add(card); c.gridx=i%2; if(i==2)c.gridy++; panel.add(card,c);
+        next.setPreferredSize(new Dimension(0, 46));
+        for (int i = 0; i < ROLES.length; i++) {
+            final int index = i;
+            JToggleButton card = roleCard(ROLES[i]);
+            card.addActionListener(e -> {
+                selectedRole = ROLES[index];
+                next.setEnabled(true);
+            });
+            group.add(card);
+            c.gridx = i % 2;
+            if (i == 2) c.gridy++;
+            panel.add(card, c);
         }
-        c.gridy++; c.gridx=0;c.gridwidth=2;c.weighty=0;c.fill=GridBagConstraints.HORIZONTAL;c.insets=new Insets(10,8,5,8);
-        next.addActionListener(e->{if(selectedRole!=null)showLogin();}); panel.add(next,c);
-        c.gridy++; c.insets=new Insets(4,8,0,8);
-        JButton back=link("← Back to welcome"); back.addActionListener(e->showWelcome()); panel.add(back,c);
-        area.add(panel); content=area; setContentPane(area); getRootPane().setDefaultButton(next); revalidate(); repaint();
+
+        c.gridy++;
+        c.gridx = 0;
+        c.gridwidth = 2;
+        c.weighty = 0;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.insets = new Insets(12, 8, 4, 8);
+        next.addActionListener(e -> {
+            if (selectedRole != null) showLogin();
+        });
+        panel.add(next, c);
+        c.gridy++;
+        c.fill = GridBagConstraints.NONE;
+        c.anchor = GridBagConstraints.CENTER;
+        c.insets = new Insets(4, 8, 0, 8);
+        JButton back = link("← Back to welcome");
+        back.addActionListener(e -> showWelcome());
+        panel.add(back, c);
+        setScreen(panel);
+        getRootPane().setDefaultButton(next);
+    }
+
+    private JToggleButton roleCard(String role) {
+        JToggleButton card = new JToggleButton();
+        card.setLayout(new BorderLayout(14, 4));
+        card.setOpaque(true);
+        card.setBackground(Color.WHITE);
+        card.setFocusPainted(true);
+        card.setFocusable(true);
+        card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        card.setBorder(cardBorder(AppTheme.BORDER_COLOR, 1, 18, 16));
+        card.setPreferredSize(new Dimension(280, 128));
+        card.getAccessibleContext().setAccessibleName(role + " login");
+        card.getAccessibleContext().setAccessibleDescription(descriptionForRole(role));
+
+        JLabel icon = new JLabel(roleIcon(role), SwingConstants.CENTER);
+        icon.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 25));
+        icon.setForeground(AppTheme.SECONDARY_COLOR);
+        icon.setBackground(new Color(230, 243, 247));
+        icon.setOpaque(true);
+        icon.setPreferredSize(new Dimension(48, 48));
+
+        JPanel labels = new JPanel();
+        labels.setOpaque(false);
+        labels.setLayout(new BoxLayout(labels, BoxLayout.Y_AXIS));
+        JLabel heading = new JLabel(role);
+        heading.setFont(AppTheme.FONT_SUBHEADING);
+        heading.setForeground(AppTheme.TEXT_PRIMARY);
+        JLabel description = new JLabel("<html><div style='width:170px'>" + descriptionForRole(role) + "</div></html>");
+        description.setFont(AppTheme.FONT_SMALL);
+        description.setForeground(AppTheme.TEXT_SECONDARY);
+        description.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 0));
+        labels.add(heading);
+        labels.add(description);
+        JLabel selected = new JLabel("›");
+        selected.setFont(AppTheme.FONT_HEADING);
+        selected.setForeground(AppTheme.ACCENT_COLOR);
+        card.add(icon, BorderLayout.WEST);
+        card.add(labels, BorderLayout.CENTER);
+        card.add(selected, BorderLayout.EAST);
+        card.addChangeListener(event -> updateRoleCard(card));
+        return card;
+    }
+
+    private void updateRoleCard(JToggleButton card) {
+        boolean selected = card.isSelected();
+        boolean emphasized = selected || card.getModel().isRollover() || card.hasFocus();
+        JLabel indicator = (JLabel) ((BorderLayout) card.getLayout()).getLayoutComponent(BorderLayout.EAST);
+        indicator.setText(selected ? "✓" : "›");
+        card.setBackground(selected ? new Color(239, 248, 249) : Color.WHITE);
+        card.setBorder(cardBorder(selected ? AppTheme.ACCENT_COLOR
+                : emphasized ? AppTheme.SECONDARY_COLOR : AppTheme.BORDER_COLOR,
+                selected || card.hasFocus() ? 2 : 1, selected ? 17 : 18, selected ? 15 : 16));
+    }
+
+    private Border cardBorder(Color color, int thickness, int verticalPadding, int horizontalPadding) {
+        return BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(color, thickness),
+                BorderFactory.createEmptyBorder(verticalPadding, horizontalPadding,
+                        verticalPadding, horizontalPadding));
+    }
+
+    private void setScreen(JPanel body) {
+        JPanel root = new JPanel(new BorderLayout());
+        root.setBackground(AppTheme.BACKGROUND_COLOR);
+
+        JPanel header = new JPanel(new BorderLayout(14, 0));
+        header.setOpaque(true);
+        header.setBackground(AppTheme.SURFACE_COLOR);
+        header.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, AppTheme.BORDER_COLOR),
+                BorderFactory.createEmptyBorder(14, 34, 14, 34)));
+        JLabel mark = new JLabel("✚", SwingConstants.CENTER);
+        mark.setOpaque(true);
+        mark.setBackground(AppTheme.PRIMARY_COLOR);
+        mark.setForeground(Color.WHITE);
+        mark.setFont(AppTheme.FONT_SUBHEADING);
+        mark.setPreferredSize(new Dimension(40, 40));
+        JPanel brand = new JPanel();
+        brand.setOpaque(false);
+        brand.setLayout(new BoxLayout(brand, BoxLayout.Y_AXIS));
+        JLabel name = new JLabel("Hospital Management System");
+        name.setFont(AppTheme.FONT_SUBHEADING);
+        name.setForeground(AppTheme.PRIMARY_COLOR);
+        JLabel subtitle = new JLabel("Secure Healthcare Management");
+        subtitle.setFont(AppTheme.FONT_SMALL);
+        subtitle.setForeground(AppTheme.TEXT_SECONDARY);
+        brand.add(name);
+        brand.add(Box.createVerticalStrut(3));
+        brand.add(subtitle);
+        header.add(mark, BorderLayout.WEST);
+        header.add(brand, BorderLayout.CENTER);
+
+        JPanel center = new JPanel(new GridBagLayout());
+        center.setOpaque(false);
+        center.add(body);
+        JLabel footer = new JLabel("Authorized access only  •  Your session is protected",
+                SwingConstants.CENTER);
+        footer.setFont(AppTheme.FONT_SMALL);
+        footer.setForeground(AppTheme.TEXT_SECONDARY);
+        footer.setBorder(BorderFactory.createEmptyBorder(10, 12, 16, 12));
+        root.add(header, BorderLayout.NORTH);
+        root.add(center, BorderLayout.CENTER);
+        root.add(footer, BorderLayout.SOUTH);
+        setContentPane(root);
+        revalidate();
+        repaint();
     }
     private String roleIcon(String role) {
         return switch (role) {
@@ -203,7 +335,7 @@ public class LoginFrame extends JFrame {
         c.gridy++;status.setFont(AppTheme.FONT_SMALL);status.setForeground(AppTheme.ERROR_COLOR);form.add(status,c);
         if(!selectedRole.equals("PATIENT")){c.gridy++;c.insets=new Insets(10,0,0,0);JPanel reg=new JPanel(new BorderLayout());reg.setOpaque(false);JLabel prompt=new JLabel("Need an account?");prompt.setForeground(AppTheme.TEXT_SECONDARY);JButton request=link("Request access");request.addActionListener(e->{dispose();new RegistrationFrame();});reg.add(prompt,BorderLayout.WEST);reg.add(request,BorderLayout.CENTER);form.add(reg,c);}
         c.gridy++;c.insets=new Insets(18,0,0,0);JButton change=link("← Back");change.addActionListener(e->{if("PATIENT".equals(selectedRole))showWelcome();else showRoles();});form.add(change,c);
-        area.add(form);split.add(area,BorderLayout.CENTER);content=split;setContentPane(split);getRootPane().setDefaultButton(signIn);status.setText(" ");revalidate();repaint();SwingUtilities.invokeLater(identifier::requestFocusInWindow);
+        area.add(form);split.add(area,BorderLayout.CENTER);setContentPane(split);getRootPane().setDefaultButton(signIn);status.setText(" ");revalidate();repaint();SwingUtilities.invokeLater(identifier::requestFocusInWindow);
     }
     private JButton link(String text){JButton b=new JButton(text);b.setFont(AppTheme.FONT_BODY.deriveFont(Font.BOLD));b.setForeground(AppTheme.SECONDARY_COLOR);b.setBorder(BorderFactory.createEmptyBorder(3,3,3,3));b.setContentAreaFilled(false);b.setFocusPainted(true);return b;}
     static String descriptionForRole(String role){
