@@ -719,6 +719,24 @@ public class BillingPanel extends JFrame {
                     JOptionPane.WARNING_MESSAGE
             );
 
+        } catch (ArithmeticException e) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Currency amounts may have no more than two decimal places.",
+                    "Input Error",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+        } catch (IllegalArgumentException e) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getMessage(),
+                    "Input Error",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
         } catch (Exception e) {
 
             LOGGER.error("Unable to save bill.", e);
@@ -849,6 +867,24 @@ public class BillingPanel extends JFrame {
             JOptionPane.showMessageDialog(
                     this,
                     "Please enter valid numeric values.",
+                    "Input Error",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+        } catch (ArithmeticException e) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Currency amounts may have no more than two decimal places.",
+                    "Input Error",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+        } catch (IllegalArgumentException e) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getMessage(),
                     "Input Error",
                     JOptionPane.WARNING_MESSAGE
             );
@@ -1073,6 +1109,15 @@ public class BillingPanel extends JFrame {
                     this,
                     "Please enter a valid numeric "
                             + "payment amount.",
+                    "Input Error",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+        } catch (ArithmeticException e) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Payment amounts may have no more than two decimal places.",
                     "Input Error",
                     JOptionPane.WARNING_MESSAGE
             );

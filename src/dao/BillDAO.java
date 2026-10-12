@@ -8,11 +8,13 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BillDAO {
     private static final Logger LOGGER = LoggerFactory.getLogger(BillDAO.class);
+    private static final BigDecimal MAX_CURRENCY_AMOUNT = new BigDecimal("9999999999.99");
 
     // =========================================================
     // ADD BILL
@@ -30,7 +32,7 @@ public class BillDAO {
 
         BigDecimal totalAmount = calculateTotal(roomCharges, doctorCharges, medicineCharges, otherCharges);
 
-        if (paidAmount == null || paidAmount.signum() < 0 || paidAmount.compareTo(totalAmount) > 0) {
+        if (!isValidPaidAmount(paidAmount, totalAmount)) {
             return false;
         }
 
@@ -87,7 +89,7 @@ public class BillDAO {
 
         BigDecimal totalAmount = calculateTotal(roomCharges, doctorCharges, medicineCharges, otherCharges);
 
-        if (paidAmount == null || paidAmount.signum() < 0 || paidAmount.compareTo(totalAmount) > 0) {
+        if (!isValidPaidAmount(paidAmount, totalAmount)) {
             return false;
         }
 
@@ -359,83 +361,32 @@ public class BillDAO {
             BigDecimal paymentAmount
     ) {
 
-        if (paymentAmount == null || paymentAmount.signum() <= 0) {
+        if (!isValidPaymentAmount(paymentAmount)) {
             return false;
         }
 
-        String selectSql =
-                "SELECT total_amount, paid_amount " +
-                "FROM bills " +
-                "WHERE bill_id = ?";
-
+        String balanceSql = "SELECT total_amount, paid_amount FROM bills WHERE bill_id = ?";
         String updateSql =
-                "UPDATE bills SET " +
-                "paid_amount = ?, " +
-                "payment_status = ? " +
-                "WHERE bill_id = ?";
+                "UPDATE bills SET paid_amount = paid_amount + ?, "
+                + "payment_status = CASE WHEN paid_amount + ? >= total_amount "
+                + "THEN 'PAID' ELSE 'PARTIAL' END "
+                + "WHERE bill_id = ? AND paid_amount + ? <= total_amount";
 
-        try (
-                Connection connection =
-                        DatabaseConnection.getConnection();
-
-                PreparedStatement selectStatement =
-                        connection.prepareStatement(selectSql)
-        ) {
-
-            selectStatement.setInt(1, billId);
-
-            try (ResultSet resultSet =
-                         selectStatement.executeQuery()) {
-
-                if (!resultSet.next()) {
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement balanceStatement = connection.prepareStatement(balanceSql)) {
+            balanceStatement.setInt(1, billId);
+            try (ResultSet balance = balanceStatement.executeQuery()) {
+                if (!balance.next() || !isPaymentWithinBalance(paymentAmount,
+                        balance.getBigDecimal("total_amount"), balance.getBigDecimal("paid_amount"))) {
                     return false;
                 }
-
-                BigDecimal totalAmount =
-                        resultSet.getBigDecimal("total_amount");
-
-                BigDecimal oldPaidAmount =
-                        resultSet.getBigDecimal("paid_amount");
-
-                BigDecimal remainingAmount =
-                        totalAmount.subtract(oldPaidAmount);
-
-                // Prevent overpayment
-                if (paymentAmount.compareTo(remainingAmount) > 0) {
-                    return false;
-                }
-
-                BigDecimal newPaidAmount =
-                        oldPaidAmount.add(paymentAmount);
-
-                String paymentStatus =
-                        getPaymentStatus(
-                                totalAmount,
-                                newPaidAmount
-                        );
-
-                try (
-                        PreparedStatement updateStatement =
-                                connection.prepareStatement(updateSql)
-                ) {
-
-                    updateStatement.setBigDecimal(
-                            1,
-                            newPaidAmount
-                    );
-
-                    updateStatement.setString(
-                            2,
-                            paymentStatus
-                    );
-
-                    updateStatement.setInt(
-                            3,
-                            billId
-                    );
-
-                    return updateStatement.executeUpdate() > 0;
-                }
+            }
+            try (PreparedStatement updateStatement = connection.prepareStatement(updateSql)) {
+                updateStatement.setBigDecimal(1, paymentAmount);
+                updateStatement.setBigDecimal(2, paymentAmount);
+                updateStatement.setInt(3, billId);
+                updateStatement.setBigDecimal(4, paymentAmount);
+                return updateStatement.executeUpdate() > 0;
             }
 
         } catch (Exception e) {
@@ -492,7 +443,7 @@ public class BillDAO {
     // PAYMENT STATUS
     // =========================================================
 
-    private String getPaymentStatus(
+    static String getPaymentStatus(
             BigDecimal totalAmount,
             BigDecimal paidAmount
     ) {
@@ -518,7 +469,41 @@ public class BillDAO {
             BigDecimal medicineCharges,
             BigDecimal otherCharges
     ) {
+        if (!isCurrencyAmount(roomCharges) || !isCurrencyAmount(doctorCharges)
+                || !isCurrencyAmount(medicineCharges) || !isCurrencyAmount(otherCharges)) {
+            throw new IllegalArgumentException("Charges must be non-negative currency amounts with at most two decimals.");
+        }
+        BigDecimal total = roomCharges.add(doctorCharges).add(medicineCharges).add(otherCharges);
+        if (total.compareTo(MAX_CURRENCY_AMOUNT) > 0) {
+            throw new IllegalArgumentException("Total charges exceed the supported billing amount.");
+        }
+        return total.setScale(2, RoundingMode.UNNECESSARY);
+    }
 
-        return roomCharges.add(doctorCharges).add(medicineCharges).add(otherCharges);
+    static boolean isCurrencyAmount(BigDecimal amount) {
+        if (amount == null || amount.signum() < 0 || amount.compareTo(MAX_CURRENCY_AMOUNT) > 0) {
+            return false;
+        }
+        try {
+            amount.setScale(2, RoundingMode.UNNECESSARY);
+            return true;
+        } catch (ArithmeticException exception) {
+            return false;
+        }
+    }
+
+    static boolean isValidPaidAmount(BigDecimal paidAmount, BigDecimal totalAmount) {
+        return isCurrencyAmount(paidAmount) && isCurrencyAmount(totalAmount)
+                && paidAmount.compareTo(totalAmount) <= 0;
+    }
+
+    static boolean isValidPaymentAmount(BigDecimal paymentAmount) {
+        return isCurrencyAmount(paymentAmount) && paymentAmount.signum() > 0;
+    }
+
+    static boolean isPaymentWithinBalance(BigDecimal paymentAmount, BigDecimal totalAmount,
+                                          BigDecimal paidAmount) {
+        return isValidPaymentAmount(paymentAmount) && isValidPaidAmount(paidAmount, totalAmount)
+                && paymentAmount.compareTo(totalAmount.subtract(paidAmount)) <= 0;
     }
 }
