@@ -1,6 +1,7 @@
 package ui;
 
 import service.BillingService;
+import ui.theme.AppTheme;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +45,9 @@ public class BillingPanel extends JFrame {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
         buildUI();
+        AppTheme.styleLegacyWindow(getContentPane());
         loadBills();
+        setVisible(true);
     }
 
     // =========================================================

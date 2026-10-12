@@ -33,7 +33,7 @@ public final class PatientAuthService {
             }
             if(!"ACTIVE".equals(account.status())){audit.recordEvent(null,"PATIENT_LOGIN_FAILURE");throw denied();}
             if(!dao.recordSuccess(account.patientId()))throw denied();
-            audit.recordEvent(null,"PATIENT_LOGIN_SUCCESS");
+            if(!audit.recordEvent(null,"PATIENT_LOGIN_SUCCESS"))throw new AuthException("Unable to connect to the hospital database.");
             return sessions.create(account.patientId(),account.name());
         }catch(SQLException ex){LOG.error("Patient authentication operation failed.",ex);throw new AuthException("Unable to connect to the hospital database.");}
         finally{Arrays.fill(supplied,'\0');}

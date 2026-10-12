@@ -90,6 +90,18 @@ class AdminUserServiceTest {
         assertEquals(0, audit.calls);
     }
 
+    @Test void administratorCannotChangeTheirOwnRoleDuringTheActiveSession() {
+        SessionManager sessions = new SessionManager(java.time.Clock.systemUTC()); sessions.createSession(user(UserRole.ADMIN));
+        FakeUsers users = new FakeUsers(); FakeAudit audit = new FakeAudit();
+        AdminUserService service = new AdminUserService(users, audit, sessions);
+
+        assertThrows(AdminUserService.AdminOperationException.class,
+                () -> service.changeRole(1, UserRole.RECEPTIONIST));
+
+        assertEquals(0, users.calls);
+        assertEquals(0, audit.calls);
+    }
+
     @Test void reportsAuditFailureAfterAnAdminAction() {
         SessionManager sessions = new SessionManager(java.time.Clock.systemUTC()); sessions.createSession(user(UserRole.ADMIN));
         FakeUsers users = new FakeUsers(); FakeAudit audit = new FakeAudit(); audit.result = false;

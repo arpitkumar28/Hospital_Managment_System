@@ -1,6 +1,7 @@
 package ui;
 
 import service.AdmissionService;
+import ui.theme.AppTheme;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -51,6 +52,7 @@ public class AdmissionPanel extends JFrame {
         );
 
         createUI();
+        AppTheme.styleLegacyWindow(getContentPane());
 
         loadPatients();
 
