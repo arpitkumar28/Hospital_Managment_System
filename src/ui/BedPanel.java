@@ -20,6 +20,8 @@ public class BedPanel extends JFrame {
     private BedService bedService;
 
     private int selectedBedId = -1;
+    private ui.components.SearchableTablePanel searchableTable;
+    private boolean loadingRooms;
 
 
     // =====================================================
@@ -362,10 +364,12 @@ public class BedPanel extends JFrame {
                 )
         );
 
-        tablePanel.add(
-                scrollPane,
-                BorderLayout.CENTER
-        );
+        searchableTable = ui.components.SearchableTablePanel.wrap(bedTable, scrollPane,
+                        "Search by room number, bed number, or status", () -> {
+                            loadRooms();
+                            loadBeds();
+                        }, 2, 3, 4);
+        tablePanel.add(searchableTable, BorderLayout.CENTER);
 
 
         mainPanel.add(
@@ -373,8 +377,8 @@ public class BedPanel extends JFrame {
                 BorderLayout.CENTER
         );
         setMinimumSize(new Dimension(780, 540));
-        scrollPane.setPreferredSize(new Dimension(780, 300));
-        bedTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        scrollPane.setPreferredSize(new Dimension(0, 300));
+        bedTable.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
         int[] widths = {75, 75, 180, 180, 140};
         for (int column = 0; column < widths.length; column++) {
             bedTable.getColumnModel().getColumn(column).setPreferredWidth(widths[column]);
@@ -384,6 +388,9 @@ public class BedPanel extends JFrame {
         // =================================================
         // BUTTON EVENTS
         // =================================================
+
+        updateButton.setEnabled(false);
+        deleteButton.setEnabled(false);
 
         addButton.addActionListener(
                 e -> addBed()
@@ -423,7 +430,9 @@ public class BedPanel extends JFrame {
                         e -> {
 
                             if (!e.getValueIsAdjusting()) {
-
+                                boolean selected = bedTable.getSelectedRow() >= 0;
+                                updateButton.setEnabled(selected);
+                                deleteButton.setEnabled(selected);
                                 selectBed();
                             }
                         }
@@ -441,35 +450,28 @@ public class BedPanel extends JFrame {
     // =====================================================
 
     private void loadRooms() {
+        if (loadingRooms) return;
+        loadingRooms = true;
+        roomComboBox.setEnabled(false);
+        new SwingWorker<List<Object[]>, Void>() {
+            @Override protected List<Object[]> doInBackground() {
+                return bedService.getAllRooms();
+            }
 
-        roomComboBox.removeAllItems();
-
-        List<Object[]> rooms =
-                bedService.getAllRooms();
-
-
-        for (Object[] room : rooms) {
-
-            int roomId =
-                    Integer.parseInt(
-                            room[0].toString()
-                    );
-
-            String roomNumber =
-                    room[1].toString();
-
-            String roomType =
-                    room[2].toString();
-
-
-            roomComboBox.addItem(
-                    new RoomItem(
-                            roomId,
-                            roomNumber,
-                            roomType
-                    )
-            );
-        }
+            @Override protected void done() {
+                loadingRooms = false;
+                roomComboBox.setEnabled(true);
+                try {
+                    roomComboBox.removeAllItems();
+                    for (Object[] room : get()) {
+                        roomComboBox.addItem(new RoomItem(Integer.parseInt(room[0].toString()),
+                                room[1].toString(), room[2].toString()));
+                    }
+                } catch (Exception exception) {
+                    searchableTable.setError("Could not load rooms. Check the database connection and retry.");
+                }
+            }
+        }.execute();
     }
 
 
@@ -478,19 +480,12 @@ public class BedPanel extends JFrame {
     // =====================================================
 
     private void loadBeds() {
-
-        tableModel.setRowCount(0);
-
-        List<Object[]> beds =
-                bedService.getAllBeds();
-
-
-        for (Object[] bed : beds) {
-
-            tableModel.addRow(
-                    bed
-            );
-        }
+        searchableTable.loadAsync("Loading bed records…",
+                "Could not load beds. Check the database connection and retry.",
+                bedService::getAllBeds, beds -> {
+                    tableModel.setRowCount(0);
+                    for (Object[] bed : beds) tableModel.addRow(bed);
+                });
     }
 
 
@@ -538,33 +533,9 @@ public class BedPanel extends JFrame {
         }
 
 
-        boolean success =
-                bedService.addBed(
-                        selectedRoom.roomId,
-                        bedNumber
-                );
-
-
-        if (success) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Bed added successfully."
-            );
-
-            clearFields();
-
-            loadBeds();
-
-        } else {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Unable to add bed.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+        int roomId = selectedRoom.roomId;
+        runBedMutation("Saving bed…", "Bed added successfully.", "Unable to add bed.",
+                () -> bedService.addBed(roomId, bedNumber));
     }
 
 
@@ -624,35 +595,10 @@ public class BedPanel extends JFrame {
         }
 
 
-        boolean success =
-                bedService.updateBed(
-                        selectedBedId,
-                        selectedRoom.roomId,
-                        bedNumber,
-                        status
-                );
-
-
-        if (success) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Bed updated successfully."
-            );
-
-            clearFields();
-
-            loadBeds();
-
-        } else {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Unable to update bed.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+        int bedId = selectedBedId;
+        int roomId = selectedRoom.roomId;
+        runBedMutation("Updating bed…", "Bed updated successfully.", "Unable to update bed.",
+                () -> bedService.updateBed(bedId, roomId, bedNumber, status));
     }
 
 
@@ -692,32 +638,29 @@ public class BedPanel extends JFrame {
         }
 
 
-        boolean success =
-                bedService.deleteBed(
-                        selectedBedId
-                );
+        int bedId = selectedBedId;
+        runBedMutation("Deleting bed…", "Bed deleted successfully.", "Unable to delete bed.",
+                () -> bedService.deleteBed(bedId));
+    }
 
-
-        if (success) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Bed deleted successfully."
-            );
-
-            clearFields();
-
-            loadBeds();
-
-        } else {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Unable to delete bed.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+    private void runBedMutation(String progress, String successMessage, String failureMessage,
+                                java.util.concurrent.Callable<Boolean> operation) {
+        searchableTable.setLoading(progress);
+        ui.components.SwingTaskRunner.run(getContentPane(), operation, success -> {
+            if (success) {
+                JOptionPane.showMessageDialog(this, successMessage, "Bed Management", JOptionPane.INFORMATION_MESSAGE);
+                searchableTable.setLoaded();
+                clearFields();
+                loadBeds();
+            } else {
+                searchableTable.setError(failureMessage);
+                JOptionPane.showMessageDialog(this, failureMessage, "Bed Management", JOptionPane.ERROR_MESSAGE);
+            }
+        }, exception -> {
+            String message = "Unable to complete the bed operation. Check the database connection and retry.";
+            searchableTable.setError(message);
+            JOptionPane.showMessageDialog(this, message, "Bed Management", JOptionPane.ERROR_MESSAGE);
+        });
     }
 
 

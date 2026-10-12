@@ -17,6 +17,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JButton;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import java.awt.BorderLayout;
@@ -140,6 +141,13 @@ public class AdminDashboard extends JFrame {
         overview.add(sectionTitle, BorderLayout.NORTH);
         if (currentUser.role() == UserRole.ADMIN) {
             overview.add(cards, BorderLayout.CENTER);
+            JPanel quickActions = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT,
+                    AppTheme.SPACE_SM, 0));
+            quickActions.setOpaque(false);
+            addQuickAction(quickActions, "Appointments", "Open appointments");
+            addQuickAction(quickActions, "Admissions", "Open admissions");
+            addQuickAction(quickActions, "Beds", "Open bed management");
+            overview.add(quickActions, BorderLayout.SOUTH);
         } else {
             JLabel guidance = new JLabel("Choose an authorized area from the navigation to continue.");
             guidance.setFont(AppTheme.FONT_BODY);
@@ -156,6 +164,16 @@ public class AdminDashboard extends JFrame {
         content.add(intro, BorderLayout.NORTH);
         content.add(overview, BorderLayout.CENTER);
         return content;
+    }
+
+    private void addQuickAction(JPanel actions, String module, String label) {
+        if (!authorization.canAccessModule(currentUser.role(), module)) return;
+        JButton button = new JButton(label);
+        button.setFont(AppTheme.FONT_BUTTON);
+        button.setPreferredSize(new Dimension(190, 42));
+        button.getAccessibleContext().setAccessibleName(label);
+        button.addActionListener(event -> navigate(module));
+        actions.add(button);
     }
 
     private void navigate(String page) {

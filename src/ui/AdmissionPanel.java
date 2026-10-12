@@ -25,6 +25,10 @@ public class AdmissionPanel extends JFrame {
     private AdmissionService admissionService;
 
     private int selectedAdmissionId = -1;
+    private ui.components.SearchableTablePanel searchableTable;
+    private boolean refreshingData;
+    private boolean refreshPending;
+    private JButton dischargeButton;
 
 
     // =====================================================
@@ -54,11 +58,7 @@ public class AdmissionPanel extends JFrame {
         createUI();
         AppTheme.styleLegacyWindow(getContentPane());
 
-        loadPatients();
-
-        loadBeds();
-
-        loadAdmissions();
+        refreshData();
 
         setVisible(true);
     }
@@ -265,10 +265,11 @@ public class AdmissionPanel extends JFrame {
                         "Admit Patient"
                 );
 
-        JButton dischargeButton =
+        dischargeButton =
                 new JButton(
                         "Discharge Patient"
                 );
+        dischargeButton.setEnabled(false);
 
         JButton refreshButton =
                 new JButton(
@@ -389,10 +390,9 @@ public class AdmissionPanel extends JFrame {
                 )
         );
 
-        tablePanel.add(
-                scrollPane,
-                BorderLayout.CENTER
-        );
+        searchableTable = ui.components.SearchableTablePanel.wrap(admissionTable, scrollPane,
+                "Search by patient, bed, or room", this::refreshData, 1, 2, 3);
+        tablePanel.add(searchableTable, BorderLayout.CENTER);
 
 
         mainPanel.add(
@@ -433,7 +433,6 @@ public class AdmissionPanel extends JFrame {
                             if (
                                     !e.getValueIsAdjusting()
                             ) {
-
                                 selectAdmission();
                             }
                         }
@@ -446,95 +445,13 @@ public class AdmissionPanel extends JFrame {
         top.add(formPanel, BorderLayout.CENTER);
         mainPanel.add(top, BorderLayout.NORTH);
         setMinimumSize(new Dimension(900, 620));
-        scrollPane.setPreferredSize(new Dimension(900, 340));
+        scrollPane.setPreferredSize(new Dimension(0, 340));
         admissionTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         int[] widths = {110, 220, 120, 120, 160, 160};
         for (int column = 0; column < widths.length; column++) {
             admissionTable.getColumnModel().getColumn(column).setPreferredWidth(widths[column]);
         }
         add(mainPanel);
-    }
-
-
-    // =====================================================
-    // LOAD PATIENTS
-    // =====================================================
-
-    private void loadPatients() {
-
-        patientComboBox.removeAllItems();
-
-        List<Object[]> patients =
-                admissionService.getPatients();
-
-
-        for (Object[] patient : patients) {
-
-            patientComboBox.addItem(
-                    new PatientItem(
-                            Integer.parseInt(
-                                    patient[0]
-                                            .toString()
-                            ),
-                            patient[1]
-                                    .toString()
-                    )
-            );
-        }
-    }
-
-
-    // =====================================================
-    // LOAD BEDS
-    // =====================================================
-
-    private void loadBeds() {
-
-        bedComboBox.removeAllItems();
-
-        List<Object[]> beds =
-                admissionService.getAvailableBeds();
-
-
-        for (Object[] bed : beds) {
-
-            bedComboBox.addItem(
-                    new BedItem(
-                            Integer.parseInt(
-                                    bed[0]
-                                            .toString()
-                            ),
-                            bed[1]
-                                    .toString(),
-                            bed[2]
-                                    .toString(),
-                            bed[3]
-                                    .toString()
-                    )
-            );
-        }
-    }
-
-
-    // =====================================================
-    // LOAD ADMISSIONS
-    // =====================================================
-
-    private void loadAdmissions() {
-
-        tableModel.setRowCount(0);
-
-        List<Object[]> admissions =
-                admissionService.getAllAdmissions();
-
-
-        for (Object[] admission :
-                admissions) {
-
-            tableModel.addRow(
-                    admission
-            );
-        }
     }
 
 
@@ -610,37 +527,11 @@ public class AdmissionPanel extends JFrame {
         }
 
 
-        boolean success =
-                admissionService.admitPatient(
-                        patient.patientId,
-                        bed.bedId,
-                        admissionDate
-                );
-
-
-        if (success) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Patient admitted successfully.",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-
-            clearFields();
-
-            refreshData();
-
-        } else {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Unable to admit patient.\n"
-                            + "The bed may no longer be available.",
-                    "Admission Failed",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+        int patientId = patient.patientId;
+        int bedId = bed.bedId;
+        runAdmissionMutation("Admitting patient…", "Patient admitted successfully.",
+                "Unable to admit patient. The bed may no longer be available.",
+                () -> admissionService.admitPatient(patientId, bedId, admissionDate));
     }
 
 
@@ -725,37 +616,33 @@ public class AdmissionPanel extends JFrame {
         }
 
 
-        boolean success =
-                admissionService.dischargePatient(
-                        selectedAdmissionId,
-                        Date.valueOf(
-                                LocalDate.now()
-                        )
-                );
+        int admissionId = selectedAdmissionId;
+        Date finalDischargeDate = Date.valueOf(LocalDate.now());
+        runAdmissionMutation("Discharging patient…", "Patient discharged successfully.",
+                "Unable to discharge patient.",
+                () -> admissionService.dischargePatient(admissionId, finalDischargeDate));
+    }
 
-
-        if (success) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Patient discharged successfully.",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-
-            clearFields();
-
-            refreshData();
-
-        } else {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Unable to discharge patient.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+    private void runAdmissionMutation(String progress, String successMessage, String failureMessage,
+                                      java.util.concurrent.Callable<Boolean> operation) {
+        searchableTable.setLoading(progress);
+        ui.components.SwingTaskRunner.run(getContentPane(), operation, success -> {
+            if (success) {
+                JOptionPane.showMessageDialog(this, successMessage, "Admission Management",
+                        JOptionPane.INFORMATION_MESSAGE);
+                searchableTable.setLoaded();
+                clearFields();
+                refreshData();
+            } else {
+                searchableTable.setError(failureMessage);
+                JOptionPane.showMessageDialog(this, failureMessage, "Admission Management",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }, exception -> {
+            String message = "Unable to complete the admission operation. Check the database connection and retry.";
+            searchableTable.setError(message);
+            JOptionPane.showMessageDialog(this, message, "Admission Management", JOptionPane.ERROR_MESSAGE);
+        });
     }
 
 
@@ -773,7 +660,7 @@ public class AdmissionPanel extends JFrame {
         if (row == -1) {
 
             selectedAdmissionId = -1;
-
+            dischargeButton.setEnabled(false);
             return;
         }
 
@@ -787,6 +674,9 @@ public class AdmissionPanel extends JFrame {
                                 )
                                 .toString()
                 );
+        Object dischargedAt = admissionTable.getValueAt(row, 5);
+        dischargeButton.setEnabled(dischargedAt == null || dischargedAt.toString().isBlank()
+                || "null".equalsIgnoreCase(dischargedAt.toString()));
     }
 
 
@@ -795,13 +685,48 @@ public class AdmissionPanel extends JFrame {
     // =====================================================
 
     private void refreshData() {
+        if (refreshingData) {
+            refreshPending = true;
+            return;
+        }
+        refreshingData = true;
+        searchableTable.setLoading("Loading patients, available beds, and admissions…");
+        new SwingWorker<AdmissionData, Void>() {
+            @Override protected AdmissionData doInBackground() {
+                return new AdmissionData(admissionService.getPatients(),
+                        admissionService.getAvailableBeds(), admissionService.getAllAdmissions());
+            }
 
-        loadPatients();
-
-        loadBeds();
-
-        loadAdmissions();
+            @Override protected void done() {
+                refreshingData = false;
+                try {
+                    AdmissionData data = get();
+                    patientComboBox.removeAllItems();
+                    for (Object[] patient : data.patients()) {
+                        patientComboBox.addItem(new PatientItem(Integer.parseInt(patient[0].toString()),
+                                patient[1].toString()));
+                    }
+                    bedComboBox.removeAllItems();
+                    for (Object[] bed : data.beds()) {
+                        bedComboBox.addItem(new BedItem(Integer.parseInt(bed[0].toString()),
+                                bed[1].toString(), bed[2].toString(), bed[3].toString()));
+                    }
+                    tableModel.setRowCount(0);
+                    for (Object[] admission : data.admissions()) tableModel.addRow(admission);
+                    searchableTable.setLoaded();
+                } catch (Exception exception) {
+                    searchableTable.setError("Could not refresh admissions. Check the database connection and retry.");
+                } finally {
+                    if (refreshPending) {
+                        refreshPending = false;
+                        refreshData();
+                    }
+                }
+            }
+        }.execute();
     }
+
+    private record AdmissionData(List<Object[]> patients, List<Object[]> beds, List<Object[]> admissions) { }
 
 
     // =====================================================

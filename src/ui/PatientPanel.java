@@ -7,6 +7,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
+import javax.swing.SwingWorker;
 
 public class PatientPanel extends JFrame {
 
@@ -25,6 +26,7 @@ public class PatientPanel extends JFrame {
     private PatientService patientService;
 
     private int selectedPatientId = -1;
+    private ui.components.SearchableTablePanel searchableTable;
 
 
     public PatientPanel() {
@@ -251,6 +253,9 @@ public class PatientPanel extends JFrame {
         JButton clearButton =
                 new JButton("🔄 Clear");
 
+        updateButton.setEnabled(false);
+        deleteButton.setEnabled(false);
+
         buttonPanel.add(addButton);
         buttonPanel.add(updateButton);
         buttonPanel.add(deleteButton);
@@ -337,10 +342,13 @@ public class PatientPanel extends JFrame {
         );
 
 
-        patientTable.getSelectionModel()
-                .addListSelectionListener(
-                        e -> selectPatient()
-                );
+        patientTable.getSelectionModel().addListSelectionListener(e -> {
+            if (e.getValueIsAdjusting()) return;
+            boolean selected = patientTable.getSelectedRow() >= 0;
+            updateButton.setEnabled(selected);
+            deleteButton.setEnabled(selected);
+            selectPatient();
+        });
 
 
         // ================= LAYOUT =================
@@ -350,10 +358,12 @@ public class PatientPanel extends JFrame {
         top.add(header, BorderLayout.NORTH);
         top.add(formPanel, BorderLayout.CENTER);
         mainPanel.add(top, BorderLayout.NORTH);
-        mainPanel.add(scrollPane, BorderLayout.CENTER);
+        searchableTable = ui.components.SearchableTablePanel.wrap(patientTable, scrollPane,
+                "Search by name, phone, or email", this::loadPatients, 1, 4, 5);
+        mainPanel.add(searchableTable, BorderLayout.CENTER);
 
         setMinimumSize(new Dimension(900, 650));
-        scrollPane.setPreferredSize(new Dimension(1000, 360));
+        scrollPane.setPreferredSize(new Dimension(0, 360));
         patientTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         int[] widths = {55, 170, 90, 110, 130, 210, 260, 100, 160};
         for (int column = 0; column < widths.length; column++) {
@@ -405,39 +415,16 @@ public class PatientPanel extends JFrame {
             return;
         }
 
-        boolean success =
-                patientService.addPatient(
-                        nameField.getText().trim(),
-                        genderBox.getSelectedItem().toString(),
-                        dobField.getText().trim(),
-                        phoneField.getText().trim(),
-                        emailField.getText().trim(),
-                        addressField.getText().trim(),
-                        bloodGroupBox.getSelectedItem().toString(),
-                        emergencyField.getText().trim()
-                );
-
-        if (success) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Patient added successfully!",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-
-            clearFields();
-            loadPatients();
-
-        } else {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Failed to add patient.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+        String name = nameField.getText().trim();
+        String gender = genderBox.getSelectedItem().toString();
+        String dob = dobField.getText().trim();
+        String phone = phoneField.getText().trim();
+        String email = emailField.getText().trim();
+        String address = addressField.getText().trim();
+        String bloodGroup = bloodGroupBox.getSelectedItem().toString();
+        String emergency = emergencyField.getText().trim();
+        runPatientMutation("Saving patient…", "Patient added successfully.", "Could not add patient.",
+                () -> patientService.addPatient(name, gender, dob, phone, email, address, bloodGroup, emergency));
     }
 
 
@@ -461,38 +448,18 @@ public class PatientPanel extends JFrame {
             return;
         }
 
-        boolean success =
-                patientService.updatePatient(
-                        selectedPatientId,
-                        nameField.getText().trim(),
-                        genderBox.getSelectedItem().toString(),
-                        dobField.getText().trim(),
-                        phoneField.getText().trim(),
-                        emailField.getText().trim(),
-                        addressField.getText().trim(),
-                        bloodGroupBox.getSelectedItem().toString(),
-                        emergencyField.getText().trim()
-                );
-
-        if (success) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Patient updated successfully!"
-            );
-
-            clearFields();
-            loadPatients();
-
-        } else {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Failed to update patient.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+        int patientId = selectedPatientId;
+        String name = nameField.getText().trim();
+        String gender = genderBox.getSelectedItem().toString();
+        String dob = dobField.getText().trim();
+        String phone = phoneField.getText().trim();
+        String email = emailField.getText().trim();
+        String address = addressField.getText().trim();
+        String bloodGroup = bloodGroupBox.getSelectedItem().toString();
+        String emergency = emergencyField.getText().trim();
+        runPatientMutation("Updating patient…", "Patient updated successfully.", "Could not update patient.",
+                () -> patientService.updatePatient(patientId, name, gender, dob, phone, email,
+                        address, bloodGroup, emergency));
     }
 
 
@@ -524,31 +491,32 @@ public class PatientPanel extends JFrame {
             return;
         }
 
-        boolean success =
-                patientService.deletePatient(
-                        selectedPatientId
-                );
+        int patientId = selectedPatientId;
+        runPatientMutation("Deleting patient…", "Patient deleted successfully.",
+                "Unable to delete patient. It may have related records.",
+                () -> patientService.deletePatient(patientId));
+    }
 
-        if (success) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Patient deleted successfully!"
-            );
-
-            clearFields();
-            loadPatients();
-
-        } else {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Unable to delete patient.\n" +
-                    "The patient may have related records.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+    private void runPatientMutation(String progress, String successMessage, String failureMessage,
+                                    java.util.concurrent.Callable<Boolean> operation) {
+        searchableTable.setLoading(progress);
+        ui.components.SwingTaskRunner.run(getContentPane(), operation, success -> {
+            if (success) {
+                JOptionPane.showMessageDialog(this, successMessage, "Patient Management",
+                        JOptionPane.INFORMATION_MESSAGE);
+                searchableTable.setLoaded();
+                clearFields();
+                loadPatients();
+            } else {
+                searchableTable.setError(failureMessage);
+                JOptionPane.showMessageDialog(this, failureMessage, "Patient Management",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }, exception -> {
+            String message = "Unable to complete the patient operation. Check the database connection and retry.";
+            searchableTable.setError(message);
+            JOptionPane.showMessageDialog(this, message, "Patient Management", JOptionPane.ERROR_MESSAGE);
+        });
     }
 
 
@@ -557,16 +525,12 @@ public class PatientPanel extends JFrame {
     // =====================================================
 
     private void loadPatients() {
-
-        tableModel.setRowCount(0);
-
-        List<Object[]> patients =
-                patientService.getAllPatients();
-
-        for (Object[] patient : patients) {
-
-            tableModel.addRow(patient);
-        }
+        searchableTable.loadAsync("Loading patient records…",
+                "Could not load patients. Check the database connection and retry.",
+                patientService::getAllPatients, patients -> {
+                    tableModel.setRowCount(0);
+                    for (Object[] patient : patients) tableModel.addRow(patient);
+                });
     }
 
 

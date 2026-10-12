@@ -5,6 +5,7 @@ import ui.theme.AppTheme;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.BorderFactory;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -49,6 +50,12 @@ public class AppSidebar extends JPanel {
         navigation.setOpaque(false);
         navigation.setLayout(new javax.swing.BoxLayout(navigation, javax.swing.BoxLayout.Y_AXIS));
         navigation.setBorder(BorderFactory.createEmptyBorder(8, 14, 16, 14));
+        JScrollPane navigationScroll = new JScrollPane(navigation,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        navigationScroll.setBorder(BorderFactory.createEmptyBorder());
+        navigationScroll.setOpaque(false);
+        navigationScroll.getViewport().setOpaque(false);
+        navigationScroll.getVerticalScrollBar().setUnitIncrement(16);
 
         JButton logout = createButton("Logout");
         logout.setForeground(new Color(255, 215, 215));
@@ -59,7 +66,7 @@ public class AppSidebar extends JPanel {
         footer.add(logout);
 
         add(brand, BorderLayout.NORTH);
-        add(navigation, BorderLayout.CENTER);
+        add(navigationScroll, BorderLayout.CENTER);
         add(footer, BorderLayout.SOUTH);
     }
 
