@@ -11,6 +11,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.JPasswordField;
 import javax.swing.table.JTableHeader;
 import javax.swing.border.Border;
@@ -20,6 +21,7 @@ import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Font;
 import java.awt.Dimension;
+import java.awt.Insets;
 
 /** Shared visual tokens and Look & Feel configuration for the Swing application. */
 public final class AppTheme {
@@ -33,6 +35,9 @@ public final class AppTheme {
     public static final Color TEXT_PRIMARY = new Color(31, 48, 61);
     public static final Color TEXT_SECONDARY = new Color(102, 119, 132);
     public static final Color BORDER_COLOR = new Color(222, 231, 236);
+    public static final Color TABLE_ALTERNATE_ROW_COLOR = new Color(248, 251, 252);
+    public static final Color TABLE_SELECTION_COLOR = new Color(221, 237, 245);
+    public static final Color TABLE_HEADER_COLOR = new Color(236, 243, 247);
     public static final Color SUCCESS_COLOR = new Color(27, 128, 89);
     public static final Color WARNING_COLOR = new Color(181, 112, 20);
     public static final Color ERROR_COLOR = new Color(181, 59, 59);
@@ -74,10 +79,12 @@ public final class AppTheme {
         UIManager.put("Button.default.background", PRIMARY_COLOR);
         UIManager.put("Button.default.foreground", SURFACE_COLOR);
         UIManager.put("Table.rowHeight", 40);
-        UIManager.put("Table.selectionBackground", new Color(221, 237, 245));
+        UIManager.put("Table.showHorizontalLines", false);
+        UIManager.put("Table.showVerticalLines", false);
+        UIManager.put("Table.selectionBackground", TABLE_SELECTION_COLOR);
         UIManager.put("Table.selectionForeground", TEXT_PRIMARY);
-        UIManager.put("Table.alternateRowColor", new Color(248, 251, 252));
-        UIManager.put("TableHeader.background", new Color(236, 243, 247));
+        UIManager.put("Table.alternateRowColor", TABLE_ALTERNATE_ROW_COLOR);
+        UIManager.put("TableHeader.background", TABLE_HEADER_COLOR);
         UIManager.put("TableHeader.foreground", TEXT_PRIMARY);
         UIManager.put("ComboBox.background", SURFACE_COLOR);
         UIManager.put("TextField.background", SURFACE_COLOR);
@@ -115,18 +122,35 @@ public final class AppTheme {
             table.setFont(FONT_BODY);
             table.setForeground(TEXT_PRIMARY);
             table.setBackground(SURFACE_COLOR);
-            table.setSelectionBackground(new Color(221, 237, 245));
+            table.setSelectionBackground(TABLE_SELECTION_COLOR);
             table.setSelectionForeground(TEXT_PRIMARY);
-            table.setRowHeight(Math.max(table.getRowHeight(), 40));
+            table.setRowHeight(Math.max(table.getRowHeight(), 42));
             table.setShowGrid(false);
             table.setIntercellSpacing(new Dimension(0, 0));
             table.setFillsViewportHeight(true);
             table.setGridColor(BORDER_COLOR);
             table.setFocusable(true);
+            table.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+            table.setSelectionBackground(TABLE_SELECTION_COLOR);
+            table.setSelectionForeground(TEXT_PRIMARY);
+            table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+                @Override
+                public Component getTableCellRendererComponent(JTable source, Object value, boolean selected,
+                                                               boolean focused, int row, int column) {
+                    Component cell = super.getTableCellRendererComponent(
+                            source, value, selected, focused, row, column);
+                    if (!selected) {
+                        cell.setBackground(row % 2 == 0 ? SURFACE_COLOR : TABLE_ALTERNATE_ROW_COLOR);
+                        cell.setForeground(TEXT_PRIMARY);
+                    }
+                    setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
+                    return cell;
+                }
+            });
         } else if (component instanceof JTableHeader header) {
             header.setFont(FONT_SUBHEADING);
             header.setForeground(TEXT_PRIMARY);
-            header.setBackground(new Color(236, 243, 247));
+            header.setBackground(TABLE_HEADER_COLOR);
             header.setPreferredSize(new Dimension(0, 42));
             header.setReorderingAllowed(false);
         } else if (component instanceof JTextField || component instanceof JPasswordField
@@ -142,14 +166,20 @@ public final class AppTheme {
             button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             button.setFocusPainted(true);
             button.setFocusable(true);
+            button.setMargin(new Insets(9, 16, 9, 16));
+            button.setPreferredSize(new Dimension(Math.max(96, button.getPreferredSize().width), 42));
             if (label.contains("delete") || label.contains("remove")) {
                 button.setBackground(ERROR_COLOR);
                 button.setForeground(SURFACE_COLOR);
+                button.setOpaque(true);
             } else if (label.contains("add") || label.contains("book")
                     || label.contains("admit") || label.contains("discharge")
                     || label.contains("update") || label.contains("save")) {
                 button.setBackground(PRIMARY_COLOR);
                 button.setForeground(SURFACE_COLOR);
+                button.setOpaque(true);
+            } else {
+                button.setForeground(PRIMARY_COLOR);
             }
         } else if (component instanceof javax.swing.JLabel label) {
             Font current = label.getFont();

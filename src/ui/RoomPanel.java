@@ -58,9 +58,8 @@ public class RoomPanel extends JFrame {
         JPanel mainPanel =
                 new JPanel(new BorderLayout());
 
-        mainPanel.setBackground(
-                new Color(245, 247, 250)
-        );
+        mainPanel.setBackground(AppTheme.BACKGROUND_COLOR);
+        mainPanel.setBorder(AppTheme.pagePadding());
 
 
         // =================================================
@@ -73,25 +72,12 @@ public class RoomPanel extends JFrame {
                         SwingConstants.CENTER
                 );
 
-        titleLabel.setFont(
-                new Font(
-                        "Arial",
-                        Font.BOLD,
-                        26
-                )
-        );
-
-        titleLabel.setForeground(
-                new Color(30, 55, 80)
-        );
+        titleLabel.setFont(AppTheme.FONT_TITLE);
+        titleLabel.setForeground(AppTheme.TEXT_PRIMARY);
+        titleLabel.setHorizontalAlignment(SwingConstants.LEFT);
 
         titleLabel.setBorder(
-                BorderFactory.createEmptyBorder(
-                        20,
-                        10,
-                        20,
-                        10
-                )
+                BorderFactory.createEmptyBorder(AppTheme.SPACE_MD, 0, AppTheme.SPACE_MD, 0)
         );
 
 
@@ -133,6 +119,7 @@ public class RoomPanel extends JFrame {
 
         gbc.fill =
                 GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 0;
 
 
         // Room Number
@@ -140,16 +127,16 @@ public class RoomPanel extends JFrame {
         gbc.gridx = 0;
         gbc.gridy = 0;
 
-        formPanel.add(
-                new JLabel("Room Number:"),
-                gbc
-        );
+        JLabel roomNumberLabel = new JLabel("Room Number:");
+        formPanel.add(roomNumberLabel, gbc);
 
 
         roomNumberField =
-                new JTextField(22);
+                new JTextField(14);
+        roomNumberLabel.setLabelFor(roomNumberField);
 
         gbc.gridx = 1;
+        gbc.weightx = 1;
 
         formPanel.add(
                 roomNumberField,
@@ -161,16 +148,16 @@ public class RoomPanel extends JFrame {
 
         gbc.gridx = 2;
 
-        formPanel.add(
-                new JLabel("Room Type:"),
-                gbc
-        );
+        JLabel roomTypeLabel = new JLabel("Room Type:");
+        formPanel.add(roomTypeLabel, gbc);
 
 
         roomTypeField =
-                new JTextField(22);
+                new JTextField(14);
+        roomTypeLabel.setLabelFor(roomTypeField);
 
         gbc.gridx = 3;
+        gbc.weightx = 1;
 
         formPanel.add(
                 roomTypeField,
@@ -183,16 +170,16 @@ public class RoomPanel extends JFrame {
         gbc.gridx = 0;
         gbc.gridy = 1;
 
-        formPanel.add(
-                new JLabel("Price / Day:"),
-                gbc
-        );
+        JLabel priceLabel = new JLabel("Price / Day:");
+        formPanel.add(priceLabel, gbc);
 
 
         priceField =
-                new JTextField(18);
+                new JTextField(12);
+        priceLabel.setLabelFor(priceField);
 
         gbc.gridx = 1;
+        gbc.weightx = 1;
 
         formPanel.add(
                 priceField,
@@ -307,14 +294,7 @@ public class RoomPanel extends JFrame {
                         new BorderLayout()
                 );
 
-        tablePanel.setBorder(
-                BorderFactory.createEmptyBorder(
-                        10,
-                        20,
-                        20,
-                        20
-                )
-        );
+        tablePanel.setBorder(BorderFactory.createEmptyBorder(AppTheme.SPACE_MD, 0, 0, 0));
 
         tablePanel.setBackground(
                 new Color(245, 247, 250)
@@ -328,8 +308,8 @@ public class RoomPanel extends JFrame {
 
         mainPanel.add(tablePanel, BorderLayout.CENTER);
         setMinimumSize(new Dimension(760, 520));
-        scrollPane.setPreferredSize(new Dimension(760, 280));
-        roomTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        scrollPane.setPreferredSize(new Dimension(0, 280));
+        roomTable.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
         int[] widths = {60, 180, 230, 150};
         for (int column = 0; column < widths.length; column++) {
             roomTable.getColumnModel().getColumn(column).setPreferredWidth(widths[column]);
