@@ -172,6 +172,10 @@ public class AdmissionDAO {
             int bedId,
             Date admissionDate) {
 
+        if (admissionDate == null) {
+            throw new IllegalArgumentException("Admission date is required.");
+        }
+
         Connection connection = null;
 
         try {
