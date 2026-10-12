@@ -268,10 +268,8 @@ public class RoomDAO {
             }
 
         } catch (SQLException e) {
-
-            e.printStackTrace();
-
-            return false;
+            LOGGER.error("Unable to check room number availability.", e);
+            throw new IllegalStateException("Unable to verify room availability.", e);
         }
     }
 
@@ -302,10 +300,9 @@ public class RoomDAO {
             }
 
         } catch (SQLException e) {
-
-            e.printStackTrace();
+            LOGGER.error("Unable to load room count.", e);
+            throw new IllegalStateException("Unable to load room count.", e);
         }
-
-        return 0;
+        throw new IllegalStateException("Room count query returned no result.");
     }
 }

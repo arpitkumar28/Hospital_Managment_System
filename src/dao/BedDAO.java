@@ -158,19 +158,12 @@ public class BedDAO {
         } catch (
                 SQLIntegrityConstraintViolationException e
         ) {
-
-            System.out.println(
-                    "Unable to add bed. " +
-                    "Check room ID or duplicate data."
-            );
-
+            LOGGER.warn("Unable to add bed because a room reference or unique bed number conflicts.");
             return false;
 
         } catch (SQLException e) {
-
-            e.printStackTrace();
-
-            return false;
+            LOGGER.error("Unable to add bed.", e);
+            throw new IllegalStateException("Unable to save bed.", e);
         }
     }
 
@@ -223,10 +216,8 @@ public class BedDAO {
             return statement.executeUpdate() > 0;
 
         } catch (SQLException e) {
-
-            e.printStackTrace();
-
-            return false;
+            LOGGER.error("Unable to update bed {}.", bedId, e);
+            throw new IllegalStateException("Unable to update bed.", e);
         }
     }
 
@@ -264,10 +255,8 @@ public class BedDAO {
             return statement.executeUpdate() > 0;
 
         } catch (SQLException e) {
-
-            e.printStackTrace();
-
-            return false;
+            LOGGER.error("Unable to update status for bed {}.", bedId, e);
+            throw new IllegalStateException("Unable to update bed status.", e);
         }
     }
 
@@ -299,10 +288,8 @@ public class BedDAO {
             return statement.executeUpdate() > 0;
 
         } catch (SQLException e) {
-
-            e.printStackTrace();
-
-            return false;
+            LOGGER.error("Unable to delete bed {}.", bedId, e);
+            throw new IllegalStateException("Unable to delete bed. It may have an active admission.", e);
         }
     }
 
@@ -333,11 +320,10 @@ public class BedDAO {
             }
 
         } catch (SQLException e) {
-
-            e.printStackTrace();
+            LOGGER.error("Unable to load bed count.", e);
+            throw new IllegalStateException("Unable to load bed count.", e);
         }
-
-        return 0;
+        throw new IllegalStateException("Bed count query returned no result.");
     }
 
 
@@ -368,11 +354,10 @@ public class BedDAO {
             }
 
         } catch (SQLException e) {
-
-            e.printStackTrace();
+            LOGGER.error("Unable to load available bed count.", e);
+            throw new IllegalStateException("Unable to load available bed count.", e);
         }
-
-        return 0;
+        throw new IllegalStateException("Available bed count query returned no result.");
     }
 
 
@@ -403,10 +388,9 @@ public class BedDAO {
             }
 
         } catch (SQLException e) {
-
-            e.printStackTrace();
+            LOGGER.error("Unable to load occupied bed count.", e);
+            throw new IllegalStateException("Unable to load occupied bed count.", e);
         }
-
-        return 0;
+        throw new IllegalStateException("Occupied bed count query returned no result.");
     }
 }
