@@ -76,6 +76,13 @@ class BillDAOTest {
     }
 
     @Test
+    void billCreationRejectsInvalidPaidAmountBeforeDatabaseAccess() {
+        assertThrows(IllegalArgumentException.class,
+                () -> bills.addBill(22, (Integer) null, new BigDecimal("100.00"),
+                        BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, new BigDecimal("100.01")));
+    }
+
+    @Test
     void paymentMustBePositiveCurrencyWithinDatabaseAmountRange() {
         assertFalse(BillDAO.isValidPaymentAmount(null));
         assertFalse(BillDAO.isValidPaymentAmount(BigDecimal.ZERO));

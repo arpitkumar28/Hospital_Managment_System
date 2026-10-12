@@ -61,6 +61,11 @@ public final class AppTheme {
     public static void install() {
         FlatLightLaf.setup();
         UIManager.put("defaultFont", FONT_BODY);
+        UIManager.put("OptionPaneUI", ContrastOptionPaneUI.class.getName());
+        UIManager.put("OptionPane.background", BACKGROUND_COLOR);
+        UIManager.put("OptionPane.messageForeground", TEXT_PRIMARY);
+        UIManager.put("OptionPane.buttonPadding", 8);
+        UIManager.put("OptionPane.buttonMinimumWidth", 84);
         UIManager.put("Component.arc", RADIUS_SM);
         UIManager.put("Button.arc", RADIUS_SM);
         UIManager.put("TextComponent.arc", RADIUS_SM);

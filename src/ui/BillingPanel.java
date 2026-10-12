@@ -34,7 +34,7 @@ public class BillingPanel extends JFrame {
     private JTextField totalAmountField;
     private JTextField paidAmountField;
 
-    private JComboBox<String> paymentStatusCombo;
+    private JTextField paymentStatusField;
 
     private JTable billTable;
     private DefaultTableModel tableModel;
@@ -53,6 +53,7 @@ public class BillingPanel extends JFrame {
 
         setTitle("Hospital Management System - Billing");
         setSize(1250, 750);
+        setMinimumSize(new Dimension(900, 650));
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
@@ -129,17 +130,13 @@ public class BillingPanel extends JFrame {
 
         totalAmountField = createField();
         paidAmountField = createField();
+        paymentStatusField = createField();
 
         totalAmountField.setEditable(false);
-
-        paymentStatusCombo =
-                new JComboBox<>(
-                        new String[]{
-                                "PENDING",
-                                "PARTIAL",
-                                "PAID"
-                        }
-                );
+        paidAmountField.setEditable(false);
+        paidAmountField.setText("0.00");
+        paidAmountField.setToolTipText("Record payments with Add Payment; existing payments are not editable.");
+        paymentStatusField.setEditable(false);
 
         // Row 0
 
@@ -166,9 +163,11 @@ public class BillingPanel extends JFrame {
                 gbc,
                 4,
                 0,
-                "Admission ID:",
+                "Admission ID (optional):",
                 admissionIdField
         );
+        admissionIdField.setToolTipText(
+                "Leave blank if there is no admission; a supplied admission must belong to this patient.");
 
         // Row 1
 
@@ -236,21 +235,15 @@ public class BillingPanel extends JFrame {
                 0,
                 3,
                 "Payment Status:",
-                paymentStatusCombo
+                paymentStatusField
         );
 
         // -----------------------------------------------------
         // BUTTON PANEL
         // -----------------------------------------------------
 
-        JPanel buttonPanel =
-                new JPanel(
-                        new FlowLayout(
-                                FlowLayout.CENTER,
-                                15,
-                                10
-                        )
-                );
+        JPanel buttonPanel = new JPanel(
+                new GridLayout(2, 3, AppTheme.SPACE_SM, AppTheme.SPACE_SM));
 
         buttonPanel.setBackground(Color.WHITE);
 
@@ -543,9 +536,7 @@ public class BillingPanel extends JFrame {
                 )
         );
 
-        button.setPreferredSize(
-                new Dimension(125, 35)
-        );
+        button.setPreferredSize(new Dimension(0, 40));
 
         return button;
     }
@@ -711,7 +702,8 @@ public class BillingPanel extends JFrame {
             }
 
             runDatabaseTask("save bill",
-                    () -> billingService.addBill(patientId, admissionId, room, doctor, medicine, other, paid),
+                    () -> billingService.addBill(patientId, admissionId, room, doctor, medicine, other,
+                            BigDecimal.ZERO.setScale(2)),
                     success -> {
                         if (success) {
                             JOptionPane.showMessageDialog(this, "Bill generated successfully.",
@@ -720,7 +712,8 @@ public class BillingPanel extends JFrame {
                             loadBills();
                         } else {
                             JOptionPane.showMessageDialog(this,
-                                    "Patient or admission was not found, or the admission belongs to a different patient.",
+                                    "Patient ID was not found, or Admission ID is invalid or belongs to another patient. "
+                                            + "Leave Admission ID blank if there is no admission.",
                                     "Error", JOptionPane.ERROR_MESSAGE);
                         }
                     });
@@ -854,7 +847,8 @@ public class BillingPanel extends JFrame {
                             loadBills();
                         } else {
                             JOptionPane.showMessageDialog(this,
-                                    "Bill, patient, or matching admission was not found. The saved payment amount cannot be reduced.",
+                                    "Bill ID or Patient ID was not found, or Admission ID is invalid or belongs "
+                                            + "to another patient. Use Add Payment to record collections.",
                                     "Error", JOptionPane.ERROR_MESSAGE);
                         }
                     });
@@ -1103,7 +1097,7 @@ public class BillingPanel extends JFrame {
         medicineChargesField.setEnabled(enabled);
         otherChargesField.setEnabled(enabled);
         paidAmountField.setEnabled(enabled);
-        paymentStatusCombo.setEnabled(enabled);
+        paymentStatusField.setEnabled(enabled);
     }
 
     private void showValidationError(String message) {
@@ -1194,11 +1188,7 @@ public class BillingPanel extends JFrame {
                 )
         );
 
-        paymentStatusCombo.setSelectedItem(
-                String.valueOf(
-                        tableModel.getValueAt(row, 9)
-                )
-        );
+        paymentStatusField.setText(String.valueOf(tableModel.getValueAt(row, 9)));
     }
 
     // =========================================================
@@ -1217,11 +1207,8 @@ public class BillingPanel extends JFrame {
         otherChargesField.setText("");
 
         totalAmountField.setText("");
-        paidAmountField.setText("");
-
-        paymentStatusCombo.setSelectedItem(
-                "PENDING"
-        );
+        paidAmountField.setText("0.00");
+        paymentStatusField.setText("");
 
         billTable.clearSelection();
     }
