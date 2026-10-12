@@ -20,6 +20,7 @@ public class RoomPanel extends JFrame {
     private RoomService roomService;
 
     private int selectedRoomId = -1;
+    private ui.components.SearchableTablePanel searchableTable;
 
 
     // =====================================================
@@ -200,6 +201,9 @@ public class RoomPanel extends JFrame {
         JButton deleteButton =
                 new JButton("Delete Room");
 
+        updateButton.setEnabled(false);
+        deleteButton.setEnabled(false);
+
         JButton clearButton =
                 new JButton("Clear");
 
@@ -300,10 +304,9 @@ public class RoomPanel extends JFrame {
                 new Color(245, 247, 250)
         );
 
-        tablePanel.add(
-                scrollPane,
-                BorderLayout.CENTER
-        );
+        searchableTable = ui.components.SearchableTablePanel.wrap(roomTable, scrollPane,
+                "Search by room number or type", this::loadRooms, 1, 2);
+        tablePanel.add(searchableTable, BorderLayout.CENTER);
 
 
         mainPanel.add(tablePanel, BorderLayout.CENTER);
@@ -348,10 +351,11 @@ public class RoomPanel extends JFrame {
                 .addListSelectionListener(
                         e -> {
 
-                            if (!e.getValueIsAdjusting()) {
-
-                                selectRoom();
-                            }
+                            if (e.getValueIsAdjusting()) return;
+                            boolean selected = roomTable.getSelectedRow() >= 0;
+                            updateButton.setEnabled(selected);
+                            deleteButton.setEnabled(selected);
+                            selectRoom();
                         }
                 );
 
@@ -422,34 +426,8 @@ public class RoomPanel extends JFrame {
             }
 
 
-            boolean success =
-                    roomService.addRoom(
-                            roomNumber,
-                            roomType,
-                            price
-                    );
-
-
-            if (success) {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Room added successfully."
-                );
-
-                clearFields();
-
-                loadRooms();
-
-            } else {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Unable to add room.",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE
-                );
-            }
+            runRoomMutation("Saving room…", "Room added successfully.", "Unable to add room.",
+                    () -> roomService.addRoom(roomNumber, roomType, price));
 
 
         } catch (NumberFormatException e) {
@@ -524,35 +502,9 @@ public class RoomPanel extends JFrame {
                     );
 
 
-            boolean success =
-                    roomService.updateRoom(
-                            selectedRoomId,
-                            roomNumber,
-                            roomType,
-                            price
-                    );
-
-
-            if (success) {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Room updated successfully."
-                );
-
-                clearFields();
-
-                loadRooms();
-
-            } else {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Unable to update room.",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE
-                );
-            }
+            int roomId = selectedRoomId;
+            runRoomMutation("Updating room…", "Room updated successfully.", "Unable to update room.",
+                    () -> roomService.updateRoom(roomId, roomNumber, roomType, price));
 
 
         } catch (NumberFormatException e) {
@@ -603,32 +555,30 @@ public class RoomPanel extends JFrame {
         }
 
 
-        boolean success =
-                roomService.deleteRoom(
-                        selectedRoomId
-                );
+        int roomId = selectedRoomId;
+        runRoomMutation("Deleting room…", "Room deleted successfully.", "Unable to delete room.",
+                () -> roomService.deleteRoom(roomId));
+    }
 
-
-        if (success) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Room deleted successfully."
-            );
-
-            clearFields();
-
-            loadRooms();
-
-        } else {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Unable to delete room.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+    private void runRoomMutation(String progress, String successMessage, String failureMessage,
+                                 java.util.concurrent.Callable<Boolean> operation) {
+        searchableTable.setLoading(progress);
+        ui.components.SwingTaskRunner.run(getContentPane(), operation, success -> {
+            if (success) {
+                JOptionPane.showMessageDialog(this, successMessage, "Room Management",
+                        JOptionPane.INFORMATION_MESSAGE);
+                searchableTable.setLoaded();
+                clearFields();
+                loadRooms();
+            } else {
+                searchableTable.setError(failureMessage);
+                JOptionPane.showMessageDialog(this, failureMessage, "Room Management", JOptionPane.ERROR_MESSAGE);
+            }
+        }, exception -> {
+            String message = "Unable to complete the room operation. Check the database connection and retry.";
+            searchableTable.setError(message);
+            JOptionPane.showMessageDialog(this, message, "Room Management", JOptionPane.ERROR_MESSAGE);
+        });
     }
 
 
@@ -637,18 +587,12 @@ public class RoomPanel extends JFrame {
     // =====================================================
 
     private void loadRooms() {
-
-        tableModel.setRowCount(0);
-
-
-        List<Object[]> rooms =
-                roomService.getAllRooms();
-
-
-        for (Object[] room : rooms) {
-
-            tableModel.addRow(room);
-        }
+        searchableTable.loadAsync("Loading room records…",
+                "Could not load rooms. Check the database connection and retry.",
+                roomService::getAllRooms, rooms -> {
+                    tableModel.setRowCount(0);
+                    for (Object[] room : rooms) tableModel.addRow(room);
+                });
     }
 
 

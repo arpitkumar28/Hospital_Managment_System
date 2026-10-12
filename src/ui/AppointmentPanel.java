@@ -29,6 +29,9 @@ public class AppointmentPanel extends JFrame {
     private final AppointmentService appointmentService;
 
     private int selectedAppointmentId = -1;
+    private ui.components.SearchableTablePanel searchableTable;
+    private boolean loadingPatients;
+    private boolean loadingDoctors;
 
 
     // =====================================================
@@ -274,6 +277,9 @@ public class AppointmentPanel extends JFrame {
         JButton deleteButton =
                 new JButton("Delete");
 
+        updateButton.setEnabled(false);
+        deleteButton.setEnabled(false);
+
         JButton clearButton =
                 new JButton("Clear");
 
@@ -383,7 +389,13 @@ public class AppointmentPanel extends JFrame {
         appointmentTable
                 .getSelectionModel()
                 .addListSelectionListener(
-                        e -> selectAppointment()
+                        e -> {
+                            if (e.getValueIsAdjusting()) return;
+                            boolean selected = appointmentTable.getSelectedRow() >= 0;
+                            updateButton.setEnabled(selected);
+                            deleteButton.setEnabled(selected);
+                            selectAppointment();
+                        }
                 );
 
 
@@ -396,10 +408,12 @@ public class AppointmentPanel extends JFrame {
         top.add(headerPanel, BorderLayout.NORTH);
         top.add(formPanel, BorderLayout.CENTER);
         mainPanel.add(top, BorderLayout.NORTH);
-        mainPanel.add(tableScrollPane, BorderLayout.CENTER);
+        searchableTable = ui.components.SearchableTablePanel.wrap(appointmentTable, tableScrollPane,
+                "Search by patient, doctor, reason, or status", this::refreshData, 1, 2, 6, 7);
+        mainPanel.add(searchableTable, BorderLayout.CENTER);
 
         setMinimumSize(new Dimension(900, 620));
-        tableScrollPane.setPreferredSize(new Dimension(1000, 360));
+        tableScrollPane.setPreferredSize(new Dimension(0, 360));
         appointmentTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         int[] widths = {55, 170, 170, 175, 115, 100, 260, 120};
         for (int column = 0; column < widths.length; column++) {
@@ -445,17 +459,27 @@ public class AppointmentPanel extends JFrame {
     // =====================================================
 
     private void loadPatients() {
-        patientBox.removeAllItems();
-        try {
-            for (Object[] patient : appointmentService.getPatients()) {
-                patientBox.addItem(new PatientItem((Integer) patient[0], (String) patient[1]));
+        if (loadingPatients) return;
+        loadingPatients = true;
+        new SwingWorker<java.util.List<Object[]>, Void>() {
+            @Override protected java.util.List<Object[]> doInBackground() {
+                return appointmentService.getPatients();
             }
-        } catch (RuntimeException exception) {
-            LOGGER.error("Unable to load appointment patients.", exception);
-            JOptionPane.showMessageDialog(this,
-                    "Unable to load patients. Verify the database connection and try again.",
-                    "Database Error", JOptionPane.ERROR_MESSAGE);
-        }
+            @Override protected void done() {
+                loadingPatients = false;
+                try {
+                    patientBox.removeAllItems();
+                    for (Object[] patient : get()) {
+                        patientBox.addItem(new PatientItem((Integer) patient[0], (String) patient[1]));
+                    }
+                } catch (Exception exception) {
+                    LOGGER.error("Unable to load appointment patients.", exception);
+                    JOptionPane.showMessageDialog(AppointmentPanel.this,
+                            "Unable to load patients. Check the database connection and retry.",
+                            "Database Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }.execute();
     }
 
 
@@ -464,17 +488,28 @@ public class AppointmentPanel extends JFrame {
     // =====================================================
 
     private void loadDoctors() {
-        doctorBox.removeAllItems();
-        try {
-            for (Object[] doctor : appointmentService.getDoctors()) {
-                doctorBox.addItem(new DoctorItem((Integer) doctor[0], (String) doctor[1], (String) doctor[2]));
+        if (loadingDoctors) return;
+        loadingDoctors = true;
+        new SwingWorker<java.util.List<Object[]>, Void>() {
+            @Override protected java.util.List<Object[]> doInBackground() {
+                return appointmentService.getDoctors();
             }
-        } catch (RuntimeException exception) {
-            LOGGER.error("Unable to load appointment doctors.", exception);
-            JOptionPane.showMessageDialog(this,
-                    "Unable to load doctors. Verify the database connection and try again.",
-                    "Database Error", JOptionPane.ERROR_MESSAGE);
-        }
+            @Override protected void done() {
+                loadingDoctors = false;
+                try {
+                    doctorBox.removeAllItems();
+                    for (Object[] doctor : get()) {
+                        doctorBox.addItem(new DoctorItem((Integer) doctor[0],
+                                (String) doctor[1], (String) doctor[2]));
+                    }
+                } catch (Exception exception) {
+                    LOGGER.error("Unable to load appointment doctors.", exception);
+                    JOptionPane.showMessageDialog(AppointmentPanel.this,
+                            "Unable to load doctors. Check the database connection and retry.",
+                            "Database Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }.execute();
     }
 
 
@@ -483,16 +518,18 @@ public class AppointmentPanel extends JFrame {
     // =====================================================
 
     private void loadAppointments() {
+        searchableTable.loadAsync("Loading appointments…",
+                "Could not load appointments. Check the database connection and retry.",
+                appointmentService::getAllAppointments, appointments -> {
+                    tableModel.setRowCount(0);
+                    for (Object[] appointment : appointments) tableModel.addRow(appointment);
+                });
+    }
 
-        tableModel.setRowCount(0);
-
-        for (
-                Object[] appointment
-                : appointmentService.getAllAppointments()
-        ) {
-
-            tableModel.addRow(appointment);
-        }
+    private void refreshData() {
+        loadPatients();
+        loadDoctors();
+        loadAppointments();
     }
 
 
@@ -515,41 +552,13 @@ public class AppointmentPanel extends JFrame {
                         doctorBox.getSelectedItem();
 
 
-        boolean success =
-                appointmentService.addAppointment(
-                        patient.id,
-                        doctor.id,
-                        dateField.getText().trim(),
-                        timeField.getText().trim(),
-                        reasonField.getText().trim(),
-                        statusBox
-                                .getSelectedItem()
-                                .toString()
-                );
-
-
-        if (success) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Appointment booked successfully!",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-
-            clearFields();
-
-            loadAppointments();
-
-        } else {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Failed to book appointment.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+        String date = dateField.getText().trim();
+        String time = timeField.getText().trim();
+        String reason = reasonField.getText().trim();
+        String status = statusBox.getSelectedItem().toString();
+        runAppointmentMutation("Booking appointment…", "Appointment booked successfully.",
+                "Could not book appointment.", () -> appointmentService.addAppointment(
+                        patient.id, doctor.id, date, time, reason, status));
     }
 
 
@@ -583,42 +592,14 @@ public class AppointmentPanel extends JFrame {
                         doctorBox.getSelectedItem();
 
 
-        boolean success =
-                appointmentService.updateAppointment(
-                        selectedAppointmentId,
-                        patient.id,
-                        doctor.id,
-                        dateField.getText().trim(),
-                        timeField.getText().trim(),
-                        reasonField.getText().trim(),
-                        statusBox
-                                .getSelectedItem()
-                                .toString()
-                );
-
-
-        if (success) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Appointment updated successfully!",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-
-            clearFields();
-
-            loadAppointments();
-
-        } else {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Failed to update appointment.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+        int appointmentId = selectedAppointmentId;
+        String date = dateField.getText().trim();
+        String time = timeField.getText().trim();
+        String reason = reasonField.getText().trim();
+        String status = statusBox.getSelectedItem().toString();
+        runAppointmentMutation("Updating appointment…", "Appointment updated successfully.",
+                "Could not update appointment.", () -> appointmentService.updateAppointment(
+                        appointmentId, patient.id, doctor.id, date, time, reason, status));
     }
 
 
@@ -654,34 +635,31 @@ public class AppointmentPanel extends JFrame {
         }
 
 
-        boolean success =
-                appointmentService.deleteAppointment(
-                        selectedAppointmentId
-                );
+        int appointmentId = selectedAppointmentId;
+        runAppointmentMutation("Deleting appointment…", "Appointment deleted successfully.",
+                "Could not delete appointment.", () -> appointmentService.deleteAppointment(appointmentId));
+    }
 
-
-        if (success) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Appointment deleted successfully!",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-
-            clearFields();
-
-            loadAppointments();
-
-        } else {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Failed to delete appointment.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+    private void runAppointmentMutation(String progress, String successMessage, String failureMessage,
+                                        java.util.concurrent.Callable<Boolean> operation) {
+        searchableTable.setLoading(progress);
+        ui.components.SwingTaskRunner.run(getContentPane(), operation, success -> {
+            if (success) {
+                JOptionPane.showMessageDialog(this, successMessage, "Appointment Management",
+                        JOptionPane.INFORMATION_MESSAGE);
+                searchableTable.setLoaded();
+                clearFields();
+                loadAppointments();
+            } else {
+                searchableTable.setError(failureMessage);
+                JOptionPane.showMessageDialog(this, failureMessage, "Appointment Management",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }, exception -> {
+            String message = "Unable to complete the appointment operation. Check the database connection and retry.";
+            searchableTable.setError(message);
+            JOptionPane.showMessageDialog(this, message, "Appointment Management", JOptionPane.ERROR_MESSAGE);
+        });
     }
 
 

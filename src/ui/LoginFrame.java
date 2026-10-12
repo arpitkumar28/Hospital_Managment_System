@@ -29,59 +29,76 @@ public class LoginFrame extends JFrame {
 
     public LoginFrame() {
         setTitle("Hospital Management System | Sign in"); setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(720, 560)); setSize(980, 700); setLocationRelativeTo(null);
+        setMinimumSize(new Dimension(900, 620)); setSize(1040, 720); setLocationRelativeTo(null);
         signIn.addActionListener(e -> signIn());
         showWelcome(); setVisible(true);
     }
 
     private void showWelcome() {
-        JPanel content = new JPanel(new GridBagLayout());
+        JPanel content = new JPanel(new BorderLayout(0, AppTheme.SPACE_LG));
         content.setOpaque(false);
-        content.setBorder(BorderFactory.createEmptyBorder(24, 36, 24, 36));
-        GridBagConstraints c = new GridBagConstraints();
-        c.gridx = 0;
-        c.gridy = 0;
-        c.gridwidth = 2;
-        c.weightx = 1;
-        c.fill = GridBagConstraints.HORIZONTAL;
-        c.insets = new Insets(0, 10, 8, 10);
-        JLabel title = new JLabel("Welcome to Hospital Management System");
-        title.setHorizontalAlignment(SwingConstants.CENTER);
-        title.setFont(AppTheme.FONT_TITLE.deriveFont(Font.BOLD, 28f));
+
+        AuthImagePanel hero = new AuthImagePanel("/assets/hero-hospital-building.png",
+                "Healthcare,\nworking together.",
+                "A secure place for your hospital team and patients to connect with care.");
+        hero.setPreferredSize(new Dimension(350, 520));
+        hero.getAccessibleContext().setAccessibleName("Hospital building");
+
+        JPanel choices = new JPanel();
+        choices.setOpaque(false);
+        choices.setBorder(BorderFactory.createEmptyBorder(28, 30, 28, 30));
+        choices.setLayout(new BoxLayout(choices, BoxLayout.Y_AXIS));
+
+        JLabel eyebrow = new JLabel("WELCOME  ·  SECURE PORTAL");
+        eyebrow.setFont(AppTheme.FONT_SMALL.deriveFont(Font.BOLD));
+        eyebrow.setForeground(AppTheme.ACCENT_COLOR);
+        JLabel title = new JLabel("Choose your workspace");
+        title.setFont(AppTheme.FONT_TITLE.deriveFont(Font.BOLD, 30f));
         title.setForeground(AppTheme.TEXT_PRIMARY);
-        content.add(title, c);
-        c.gridy++;
-        JLabel support = new JLabel(
-                "<html><div style='text-align:center'>Secure access to your healthcare workspace. "
-                        + "Choose how you would like to sign in.</div></html>");
-        support.setHorizontalAlignment(SwingConstants.CENTER);
+        JLabel support = new JLabel("Sign in securely to continue.");
         support.setFont(AppTheme.FONT_BODY);
         support.setForeground(AppTheme.TEXT_SECONDARY);
-        content.add(support, c);
+        support.setBorder(BorderFactory.createEmptyBorder(7, 0, 24, 0));
 
-        c.gridy++;
-        c.gridwidth = 1;
-        c.weighty = 1;
-        c.fill = GridBagConstraints.BOTH;
-        c.insets = new Insets(30, 10, 18, 10);
-        content.add(portalCard("✚", "Staff Portal", "Secure tools for hospital staff", this::showRoles), c);
-        c.gridx = 1;
-        content.add(portalCard("♡", "Patient Portal", "Access your patient workspace", () -> {
+        choices.add(eyebrow);
+        choices.add(Box.createVerticalStrut(10));
+        choices.add(title);
+        choices.add(support);
+
+        JButton staff = portalCard("✚", "Staff Portal", "Tools for your hospital role", this::showRoles);
+        staff.setPreferredSize(new Dimension(440, 116));
+        staff.setMaximumSize(new Dimension(Integer.MAX_VALUE, 116));
+        staff.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JButton patient = portalCard("♡", "Patient Portal", "Access your patient workspace", () -> {
             selectedRole = "PATIENT";
             showLogin();
-        }), c);
+        });
+        patient.setPreferredSize(new Dimension(440, 116));
+        patient.setMaximumSize(new Dimension(Integer.MAX_VALUE, 116));
+        patient.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        c.gridx = 0;
-        c.gridy++;
-        c.gridwidth = 2;
-        c.weighty = 0;
-        c.fill = GridBagConstraints.NONE;
-        c.anchor = GridBagConstraints.CENTER;
-        c.insets = new Insets(0, 10, 0, 10);
-        JButton exit = link("Exit application");
+        choices.add(staff);
+        choices.add(Box.createVerticalStrut(AppTheme.SPACE_MD));
+        choices.add(patient);
+        choices.add(Box.createVerticalGlue());
+
+        JPanel bottom = new JPanel(new BorderLayout());
+        bottom.setOpaque(false);
+        JLabel privacy = new JLabel("Your account is protected with secure sign-in.");
+        privacy.setFont(AppTheme.FONT_SMALL);
+        privacy.setForeground(AppTheme.TEXT_SECONDARY);
+        JButton exit = link("Exit");
         exit.setForeground(AppTheme.TEXT_SECONDARY);
         exit.addActionListener(e -> dispose());
-        content.add(exit, c);
+        bottom.add(privacy, BorderLayout.WEST);
+        bottom.add(exit, BorderLayout.EAST);
+        choices.add(bottom);
+
+        content.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppTheme.BORDER_COLOR),
+                BorderFactory.createEmptyBorder(0, 0, 0, 0)));
+        content.add(hero, BorderLayout.WEST);
+        content.add(choices, BorderLayout.CENTER);
 
         setScreen(content);
         getRootPane().setDefaultButton(null);

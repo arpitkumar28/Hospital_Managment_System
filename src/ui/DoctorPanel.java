@@ -25,6 +25,7 @@ public class DoctorPanel extends JFrame {
     private DoctorService doctorService;
 
     private int selectedDoctorId = -1;
+    private ui.components.SearchableTablePanel searchableTable;
 
 
     public DoctorPanel() {
@@ -228,6 +229,9 @@ public class DoctorPanel extends JFrame {
         JButton clearButton =
                 new JButton("🔄 Clear");
 
+        updateButton.setEnabled(false);
+        deleteButton.setEnabled(false);
+
 
         buttonPanel.add(addButton);
         buttonPanel.add(updateButton);
@@ -316,10 +320,13 @@ public class DoctorPanel extends JFrame {
         );
 
 
-        doctorTable.getSelectionModel()
-                .addListSelectionListener(
-                        e -> selectDoctor()
-                );
+        doctorTable.getSelectionModel().addListSelectionListener(e -> {
+            if (e.getValueIsAdjusting()) return;
+            boolean selected = doctorTable.getSelectedRow() >= 0;
+            updateButton.setEnabled(selected);
+            deleteButton.setEnabled(selected);
+            selectDoctor();
+        });
 
 
         // ================= LAYOUT =================
@@ -329,11 +336,13 @@ public class DoctorPanel extends JFrame {
         top.add(header, BorderLayout.NORTH);
         top.add(formPanel, BorderLayout.CENTER);
         mainPanel.add(top, BorderLayout.NORTH);
-        mainPanel.add(scrollPane, BorderLayout.CENTER);
+        searchableTable = ui.components.SearchableTablePanel.wrap(doctorTable, scrollPane,
+                "Search by name, specialty, or email", this::loadDoctors, 1, 2, 4);
+        mainPanel.add(searchableTable, BorderLayout.CENTER);
 
         setMinimumSize(new Dimension(900, 620));
-        scrollPane.setPreferredSize(new Dimension(1000, 340));
-        doctorTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        scrollPane.setPreferredSize(new Dimension(0, 340));
+        doctorTable.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
         int[] widths = {55, 180, 190, 135, 220, 115, 145, 150};
         for (int column = 0; column < widths.length; column++) {
             doctorTable.getColumnModel().getColumn(column).setPreferredWidth(widths[column]);
@@ -380,41 +389,15 @@ public class DoctorPanel extends JFrame {
             return;
         }
 
-        boolean success =
-                doctorService.addDoctor(
-                        nameField.getText().trim(),
-                        specializationField.getText().trim(),
-                        phoneField.getText().trim(),
-                        emailField.getText().trim(),
-                        experienceField.getText().trim(),
-                        feeField.getText().trim(),
-                        availabilityBox
-                                .getSelectedItem()
-                                .toString()
-                );
-
-
-        if (success) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Doctor added successfully!",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-
-            clearFields();
-            loadDoctors();
-
-        } else {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Failed to add doctor.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+        String name = nameField.getText().trim();
+        String specialization = specializationField.getText().trim();
+        String phone = phoneField.getText().trim();
+        String email = emailField.getText().trim();
+        String experience = experienceField.getText().trim();
+        String fee = feeField.getText().trim();
+        String availability = availabilityBox.getSelectedItem().toString();
+        runDoctorMutation("Saving doctor…", "Doctor added successfully.", "Could not add doctor.",
+                () -> doctorService.addDoctor(name, specialization, phone, email, experience, fee, availability));
     }
 
 
@@ -440,40 +423,17 @@ public class DoctorPanel extends JFrame {
         }
 
 
-        boolean success =
-                doctorService.updateDoctor(
-                        selectedDoctorId,
-                        nameField.getText().trim(),
-                        specializationField.getText().trim(),
-                        phoneField.getText().trim(),
-                        emailField.getText().trim(),
-                        experienceField.getText().trim(),
-                        feeField.getText().trim(),
-                        availabilityBox
-                                .getSelectedItem()
-                                .toString()
-                );
-
-
-        if (success) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Doctor updated successfully!"
-            );
-
-            clearFields();
-            loadDoctors();
-
-        } else {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Failed to update doctor.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+        int doctorId = selectedDoctorId;
+        String name = nameField.getText().trim();
+        String specialization = specializationField.getText().trim();
+        String phone = phoneField.getText().trim();
+        String email = emailField.getText().trim();
+        String experience = experienceField.getText().trim();
+        String fee = feeField.getText().trim();
+        String availability = availabilityBox.getSelectedItem().toString();
+        runDoctorMutation("Updating doctor…", "Doctor updated successfully.", "Could not update doctor.",
+                () -> doctorService.updateDoctor(doctorId, name, specialization, phone, email,
+                        experience, fee, availability));
     }
 
 
@@ -508,32 +468,32 @@ public class DoctorPanel extends JFrame {
         }
 
 
-        boolean success =
-                doctorService.deleteDoctor(
-                        selectedDoctorId
-                );
+        int doctorId = selectedDoctorId;
+        runDoctorMutation("Deleting doctor…", "Doctor deleted successfully.",
+                "Unable to delete doctor. It may have related appointments.",
+                () -> doctorService.deleteDoctor(doctorId));
+    }
 
-
-        if (success) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Doctor deleted successfully!"
-            );
-
-            clearFields();
-            loadDoctors();
-
-        } else {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Unable to delete doctor.\n" +
-                    "The doctor may have related appointments.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+    private void runDoctorMutation(String progress, String successMessage, String failureMessage,
+                                   java.util.concurrent.Callable<Boolean> operation) {
+        searchableTable.setLoading(progress);
+        ui.components.SwingTaskRunner.run(getContentPane(), operation, success -> {
+            if (success) {
+                JOptionPane.showMessageDialog(this, successMessage, "Doctor Management",
+                        JOptionPane.INFORMATION_MESSAGE);
+                searchableTable.setLoaded();
+                clearFields();
+                loadDoctors();
+            } else {
+                searchableTable.setError(failureMessage);
+                JOptionPane.showMessageDialog(this, failureMessage, "Doctor Management",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }, exception -> {
+            String message = "Unable to complete the doctor operation. Check the database connection and retry.";
+            searchableTable.setError(message);
+            JOptionPane.showMessageDialog(this, message, "Doctor Management", JOptionPane.ERROR_MESSAGE);
+        });
     }
 
 
@@ -542,16 +502,12 @@ public class DoctorPanel extends JFrame {
     // =====================================================
 
     private void loadDoctors() {
-
-        tableModel.setRowCount(0);
-
-        List<Object[]> doctors =
-                doctorService.getAllDoctors();
-
-        for (Object[] doctor : doctors) {
-
-            tableModel.addRow(doctor);
-        }
+        searchableTable.loadAsync("Loading doctor records…",
+                "Could not load doctors. Check the database connection and retry.",
+                doctorService::getAllDoctors, doctors -> {
+                    tableModel.setRowCount(0);
+                    for (Object[] doctor : doctors) tableModel.addRow(doctor);
+                });
     }
 
 
