@@ -203,7 +203,7 @@ class PostgresAdmissionBedIntegrationTest {
         try (PreparedStatement statement = connection.prepareStatement(
                 "INSERT INTO beds (room_id, bed_number) VALUES (?, ?) RETURNING bed_id")) {
             statement.setInt(1, roomId);
-            statement.setString(2, suffix + "-" + UUID.randomUUID());
+            statement.setString(2, suffix + "-" + UUID.randomUUID().toString().replace("-", "").substring(0, 24));
             try (ResultSet result = statement.executeQuery()) { assertTrue(result.next()); return result.getInt(1); }
         }
     }

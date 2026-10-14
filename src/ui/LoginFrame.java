@@ -335,6 +335,163 @@ public class LoginFrame extends JFrame {
     }
 
     private void showLogin() {
+        if ("PATIENT".equals(selectedRole)) {
+            showPatientLogin();
+            return;
+        }
+        showStaffLogin();
+    }
+
+    private void showStaffLogin() {
+        JPanel split = new JPanel(new BorderLayout());
+        split.setBackground(AppTheme.SURFACE_COLOR);
+
+        AuthImagePanel visual = new AuthImagePanel("/assets/healthcare-team.png",
+                "Care teams,\nworking together.",
+                "A secure workspace for hospital operations and patient information.");
+        visual.setPreferredSize(new Dimension(430, 700));
+        split.add(visual, BorderLayout.WEST);
+
+        JPanel area = new JPanel(new GridBagLayout());
+        area.setBackground(AppTheme.BACKGROUND_COLOR);
+        area.setBorder(BorderFactory.createEmptyBorder(24, 22, 24, 22));
+
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setBackground(AppTheme.SURFACE_COLOR);
+        form.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppTheme.BORDER_COLOR),
+                BorderFactory.createEmptyBorder(26, 32, 26, 32)));
+        form.setPreferredSize(new Dimension(460, 540));
+        GridBagConstraints c = new GridBagConstraints();
+        c.gridx = 0;
+        c.gridy = 0;
+        c.weightx = 1;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.anchor = GridBagConstraints.WEST;
+
+        JButton back = link("← Change staff role");
+        back.setHorizontalAlignment(SwingConstants.LEFT);
+        back.getAccessibleContext().setAccessibleDescription("Return to staff workspace selection.");
+        back.addActionListener(event -> showRoles());
+        c.insets = new Insets(0, 0, 22, 0);
+        form.add(back, c);
+
+        c.gridy++;
+        JLabel eyebrow = new JLabel("SECURE STAFF PORTAL");
+        eyebrow.setFont(AppTheme.FONT_SMALL.deriveFont(Font.BOLD));
+        eyebrow.setForeground(AppTheme.ACCENT_COLOR);
+        c.insets = new Insets(0, 0, 8, 0);
+        form.add(eyebrow, c);
+
+        c.gridy++;
+        JLabel heading = new JLabel("Welcome back");
+        heading.setFont(AppTheme.FONT_TITLE.deriveFont(Font.BOLD, 30f));
+        heading.setForeground(AppTheme.TEXT_PRIMARY);
+        c.insets = new Insets(0, 0, 5, 0);
+        form.add(heading, c);
+
+        c.gridy++;
+        JLabel role = new JLabel(displayRole(selectedRole) + " workspace");
+        role.setFont(AppTheme.FONT_BODY.deriveFont(Font.BOLD));
+        role.setForeground(AppTheme.SECONDARY_COLOR);
+        role.getAccessibleContext().setAccessibleName("Selected staff workspace: " + displayRole(selectedRole));
+        c.insets = new Insets(0, 0, 8, 0);
+        form.add(role, c);
+
+        c.gridy++;
+        JLabel description = new JLabel(descriptionForRole(selectedRole));
+        description.setFont(AppTheme.FONT_BODY);
+        description.setForeground(AppTheme.TEXT_SECONDARY);
+        c.insets = new Insets(0, 0, 22, 0);
+        form.add(description, c);
+
+        identifier.setText("");
+        identifier.putClientProperty("JTextField.placeholderText", "Enter your staff username or email");
+        identifier.setFont(AppTheme.FONT_BODY);
+        identifier.setPreferredSize(new Dimension(0, 44));
+        identifier.setToolTipText("Use the username or email registered to your staff account.");
+        identifier.getAccessibleContext().setAccessibleName("Username or email");
+
+        c.gridy++;
+        JLabel idLabel = fieldLabel("Username or email", identifier);
+        c.insets = new Insets(0, 0, 7, 0);
+        form.add(idLabel, c);
+
+        c.gridy++;
+        c.insets = new Insets(0, 0, 17, 0);
+        form.add(identifier, c);
+
+        password.setText("");
+        password.setEchoChar(defaultEchoChar());
+        password.setFont(AppTheme.FONT_BODY);
+        password.setPreferredSize(new Dimension(0, 44));
+        password.setToolTipText("Enter your staff account password.");
+        password.getAccessibleContext().setAccessibleName("Password");
+
+        c.gridy++;
+        JLabel passLabel = fieldLabel("Password", password);
+        c.insets = new Insets(0, 0, 7, 0);
+        form.add(passLabel, c);
+
+        c.gridy++;
+        c.insets = new Insets(0, 0, 5, 0);
+        form.add(password, c);
+
+        JCheckBox showPassword = new JCheckBox("Show password");
+        showPassword.setOpaque(false);
+        showPassword.setFont(AppTheme.FONT_SMALL);
+        showPassword.addActionListener(event -> password.setEchoChar(
+                showPassword.isSelected() ? '\0' : defaultEchoChar()));
+        JButton forgot = link("Forgot password?");
+        forgot.addActionListener(event -> JOptionPane.showMessageDialog(this,
+                "Ask your hospital administrator to reset your password.",
+                "Password help", JOptionPane.INFORMATION_MESSAGE));
+        JPanel passwordOptions = new JPanel(new BorderLayout());
+        passwordOptions.setOpaque(false);
+        passwordOptions.add(showPassword, BorderLayout.WEST);
+        passwordOptions.add(forgot, BorderLayout.EAST);
+        c.gridy++;
+        c.insets = new Insets(0, 0, 20, 0);
+        form.add(passwordOptions, c);
+
+        signIn.setText("Sign in to " + displayRole(selectedRole));
+        signIn.setPreferredSize(new Dimension(0, 48));
+        signIn.getAccessibleContext().setAccessibleName("Sign in to " + displayRole(selectedRole) + " workspace");
+        c.gridy++;
+        c.insets = new Insets(0, 0, 9, 0);
+        form.add(signIn, c);
+
+        status.setFont(AppTheme.FONT_SMALL);
+        status.setForeground(AppTheme.ERROR_COLOR);
+        status.setText(" ");
+        status.getAccessibleContext().setAccessibleName("Sign-in status");
+        c.gridy++;
+        c.insets = new Insets(0, 0, 9, 0);
+        form.add(status, c);
+
+        JLabel prompt = new JLabel("Need a staff account?");
+        prompt.setFont(AppTheme.FONT_SMALL);
+        prompt.setForeground(AppTheme.TEXT_SECONDARY);
+        JButton request = link("Request access");
+        request.addActionListener(event -> { dispose(); new RegistrationFrame(); });
+        JPanel registration = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        registration.setOpaque(false);
+        registration.add(prompt);
+        registration.add(request);
+        c.gridy++;
+        c.insets = new Insets(0, 0, 0, 0);
+        form.add(registration, c);
+
+        area.add(form);
+        split.add(area, BorderLayout.CENTER);
+        setContentPane(split);
+        getRootPane().setDefaultButton(signIn);
+        revalidate();
+        repaint();
+        SwingUtilities.invokeLater(identifier::requestFocusInWindow);
+    }
+
+    private void showPatientLogin() {
         JPanel split=new JPanel(new BorderLayout()); split.setBackground(AppTheme.SURFACE_COLOR);
         AuthImagePanel visual=new AuthImagePanel("/assets/healthcare-team.png","Care teams, working together.","A secure workspace for hospital operations and patient information."); visual.setPreferredSize(new Dimension(430,700)); split.add(visual,BorderLayout.WEST);
         JPanel area=new JPanel(new GridBagLayout()); area.setBackground(AppTheme.BACKGROUND_COLOR);
@@ -353,6 +510,19 @@ public class LoginFrame extends JFrame {
         if(!selectedRole.equals("PATIENT")){c.gridy++;c.insets=new Insets(10,0,0,0);JPanel reg=new JPanel(new BorderLayout());reg.setOpaque(false);JLabel prompt=new JLabel("Need an account?");prompt.setForeground(AppTheme.TEXT_SECONDARY);JButton request=link("Request access");request.addActionListener(e->{dispose();new RegistrationFrame();});reg.add(prompt,BorderLayout.WEST);reg.add(request,BorderLayout.CENTER);form.add(reg,c);}
         c.gridy++;c.insets=new Insets(18,0,0,0);JButton change=link("← Back");change.addActionListener(e->{if("PATIENT".equals(selectedRole))showWelcome();else showRoles();});form.add(change,c);
         area.add(form);split.add(area,BorderLayout.CENTER);setContentPane(split);getRootPane().setDefaultButton(signIn);status.setText(" ");revalidate();repaint();SwingUtilities.invokeLater(identifier::requestFocusInWindow);
+    }
+
+    private JLabel fieldLabel(String text, JComponent field) {
+        JLabel label = new JLabel(text);
+        label.setFont(AppTheme.FONT_BODY.deriveFont(Font.BOLD));
+        label.setForeground(AppTheme.TEXT_PRIMARY);
+        label.setLabelFor(field);
+        return label;
+    }
+
+    private static String displayRole(String role) {
+        String normalized = role.toLowerCase(java.util.Locale.ROOT);
+        return Character.toUpperCase(normalized.charAt(0)) + normalized.substring(1);
     }
     private JButton link(String text){JButton b=new JButton(text);b.setFont(AppTheme.FONT_BODY.deriveFont(Font.BOLD));b.setForeground(AppTheme.SECONDARY_COLOR);b.setBorder(BorderFactory.createEmptyBorder(3,3,3,3));b.setContentAreaFilled(false);b.setFocusPainted(true);return b;}
     static String descriptionForRole(String role){

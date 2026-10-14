@@ -29,23 +29,30 @@ public class AppSidebar extends JPanel {
         super(new BorderLayout());
         this.selectionHandler = selectionHandler;
         setBackground(AppTheme.SIDEBAR_COLOR);
-        setPreferredSize(new Dimension(252, 600));
+        setPreferredSize(new Dimension(264, 600));
 
-        JPanel brand = new JPanel(new BorderLayout());
+        JPanel brand = new JPanel(new BorderLayout(12, 0));
         brand.setOpaque(false);
-        brand.setBorder(BorderFactory.createEmptyBorder(25, 20, 24, 16));
-        JLabel mark = new JLabel("H");
+        brand.setBorder(BorderFactory.createEmptyBorder(22, 20, 20, 16));
+        JLabel mark = new JLabel("+");
         mark.setOpaque(true);
         mark.setBackground(AppTheme.ACCENT_COLOR);
         mark.setForeground(Color.WHITE);
-        mark.setFont(AppTheme.FONT_HEADING);
+        mark.setFont(AppTheme.FONT_TITLE.deriveFont(java.awt.Font.BOLD, 25f));
         mark.setHorizontalAlignment(JLabel.CENTER);
-        mark.setPreferredSize(new Dimension(40, 40));
-        JLabel name = new JLabel("  Hospital Management");
+        mark.setPreferredSize(new Dimension(42, 42));
+        JPanel brandCopy = new JPanel(new BorderLayout(0, 3));
+        brandCopy.setOpaque(false);
+        JLabel name = new JLabel("Hospital Management");
         name.setForeground(Color.WHITE);
-        name.setFont(AppTheme.FONT_SUBHEADING);
+        name.setFont(AppTheme.FONT_SUBHEADING.deriveFont(java.awt.Font.BOLD));
+        JLabel caption = new JLabel("CARE OPERATIONS");
+        caption.setForeground(new Color(171, 196, 204));
+        caption.setFont(AppTheme.FONT_SMALL.deriveFont(java.awt.Font.BOLD, 9f));
+        brandCopy.add(name, BorderLayout.CENTER);
+        brandCopy.add(caption, BorderLayout.SOUTH);
         brand.add(mark, BorderLayout.WEST);
-        brand.add(name, BorderLayout.CENTER);
+        brand.add(brandCopy, BorderLayout.CENTER);
 
         navigation.setOpaque(false);
         navigation.setLayout(new javax.swing.BoxLayout(navigation, javax.swing.BoxLayout.Y_AXIS));
@@ -62,7 +69,9 @@ public class AppSidebar extends JPanel {
         logout.addActionListener(event -> logoutHandler.run());
         JPanel footer = new JPanel(new BorderLayout());
         footer.setOpaque(false);
-        footer.setBorder(BorderFactory.createEmptyBorder(12, 12, 16, 12));
+        footer.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(44, 72, 85)),
+                BorderFactory.createEmptyBorder(12, 12, 14, 12)));
         footer.add(logout);
 
         add(brand, BorderLayout.NORTH);
@@ -98,8 +107,8 @@ public class AppSidebar extends JPanel {
         button.setHorizontalAlignment(JButton.LEFT);
         button.setFocusPainted(true);
         button.setFocusable(true);
-        button.setBorder(BorderFactory.createEmptyBorder(12, 14, 12, 12));
-        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        button.setBorder(BorderFactory.createEmptyBorder(11, 14, 11, 12));
+        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         button.getAccessibleContext().setAccessibleName(text);
         styleButton(button, false);
@@ -116,11 +125,11 @@ public class AppSidebar extends JPanel {
 
     private void styleButton(JButton button, boolean selected) {
         button.setOpaque(true);
-        button.setBackground(selected ? AppTheme.SECONDARY_COLOR : AppTheme.SIDEBAR_COLOR);
-        button.setForeground(Color.WHITE);
+        button.setBackground(selected ? new Color(35, 84, 99) : AppTheme.SIDEBAR_COLOR);
+        button.setForeground(selected ? Color.WHITE : new Color(218, 231, 234));
         button.setBorder(BorderFactory.createCompoundBorder(
                 selected ? BorderFactory.createMatteBorder(0, 3, 0, 0, AppTheme.ACCENT_COLOR)
                         : BorderFactory.createEmptyBorder(0, 3, 0, 0),
-                BorderFactory.createEmptyBorder(12, 11, 12, 12)));
+                BorderFactory.createEmptyBorder(11, 11, 11, 12)));
     }
 }

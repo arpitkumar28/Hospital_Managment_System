@@ -26,22 +26,22 @@ import java.awt.Insets;
 /** Shared visual tokens and Look & Feel configuration for the Swing application. */
 public final class AppTheme {
 
-    public static final Color PRIMARY_COLOR = new Color(23, 59, 94);
-    public static final Color SECONDARY_COLOR = new Color(36, 107, 138);
-    public static final Color ACCENT_COLOR = new Color(17, 132, 145);
-    public static final Color BACKGROUND_COLOR = new Color(243, 247, 250);
+    public static final Color PRIMARY_COLOR = new Color(20, 57, 76);
+    public static final Color SECONDARY_COLOR = new Color(34, 105, 122);
+    public static final Color ACCENT_COLOR = new Color(15, 139, 139);
+    public static final Color BACKGROUND_COLOR = new Color(243, 248, 249);
     public static final Color SURFACE_COLOR = Color.WHITE;
-    public static final Color SIDEBAR_COLOR = new Color(18, 39, 62);
-    public static final Color TEXT_PRIMARY = new Color(31, 48, 61);
-    public static final Color TEXT_SECONDARY = new Color(102, 119, 132);
-    public static final Color BORDER_COLOR = new Color(222, 231, 236);
-    public static final Color TABLE_ALTERNATE_ROW_COLOR = new Color(248, 251, 252);
-    public static final Color TABLE_SELECTION_COLOR = new Color(221, 237, 245);
-    public static final Color TABLE_HEADER_COLOR = new Color(236, 243, 247);
-    public static final Color SUCCESS_COLOR = new Color(27, 128, 89);
-    public static final Color WARNING_COLOR = new Color(181, 112, 20);
-    public static final Color ERROR_COLOR = new Color(181, 59, 59);
-    public static final Color INFO_COLOR = new Color(40, 112, 166);
+    public static final Color SIDEBAR_COLOR = new Color(17, 43, 58);
+    public static final Color TEXT_PRIMARY = new Color(29, 51, 63);
+    public static final Color TEXT_SECONDARY = new Color(94, 116, 128);
+    public static final Color BORDER_COLOR = new Color(216, 229, 232);
+    public static final Color TABLE_ALTERNATE_ROW_COLOR = new Color(247, 250, 250);
+    public static final Color TABLE_SELECTION_COLOR = new Color(222, 241, 239);
+    public static final Color TABLE_HEADER_COLOR = new Color(237, 245, 246);
+    public static final Color SUCCESS_COLOR = new Color(25, 119, 83);
+    public static final Color WARNING_COLOR = new Color(163, 101, 18);
+    public static final Color ERROR_COLOR = new Color(174, 57, 57);
+    public static final Color INFO_COLOR = new Color(39, 105, 151);
 
     public static final int SPACE_XS = 4;
     public static final int SPACE_SM = 8;
@@ -71,9 +71,9 @@ public final class AppTheme {
         UIManager.put("OptionPane.messageForeground", TEXT_PRIMARY);
         UIManager.put("OptionPane.buttonPadding", 8);
         UIManager.put("OptionPane.buttonMinimumWidth", 84);
-        UIManager.put("Component.arc", RADIUS_SM);
-        UIManager.put("Button.arc", RADIUS_SM);
-        UIManager.put("TextComponent.arc", RADIUS_SM);
+        UIManager.put("Component.arc", RADIUS_MD);
+        UIManager.put("Button.arc", RADIUS_MD);
+        UIManager.put("TextComponent.arc", RADIUS_MD);
         UIManager.put("Component.focusColor", ACCENT_COLOR);
         UIManager.put("Component.borderColor", BORDER_COLOR);
         UIManager.put("Button.default.background", PRIMARY_COLOR);
@@ -86,9 +86,12 @@ public final class AppTheme {
         UIManager.put("Table.alternateRowColor", TABLE_ALTERNATE_ROW_COLOR);
         UIManager.put("TableHeader.background", TABLE_HEADER_COLOR);
         UIManager.put("TableHeader.foreground", TEXT_PRIMARY);
+        UIManager.put("TableHeader.height", 44);
+        UIManager.put("TableHeader.separatorColor", BORDER_COLOR);
         UIManager.put("ComboBox.background", SURFACE_COLOR);
         UIManager.put("TextField.background", SURFACE_COLOR);
         UIManager.put("PasswordField.background", SURFACE_COLOR);
+        UIManager.put("Label.foreground", TEXT_PRIMARY);
         UIManager.put("Button.focusedBorderColor", ACCENT_COLOR);
         UIManager.put("Button.hoverBackground", new Color(36, 82, 121));
         UIManager.put("Button.pressedBackground", new Color(17, 47, 77));
@@ -124,7 +127,7 @@ public final class AppTheme {
             table.setBackground(SURFACE_COLOR);
             table.setSelectionBackground(TABLE_SELECTION_COLOR);
             table.setSelectionForeground(TEXT_PRIMARY);
-            table.setRowHeight(Math.max(table.getRowHeight(), 42));
+            table.setRowHeight(Math.max(table.getRowHeight(), 46));
             table.setShowGrid(false);
             table.setIntercellSpacing(new Dimension(0, 0));
             table.setFillsViewportHeight(true);
@@ -151,7 +154,8 @@ public final class AppTheme {
             header.setFont(FONT_SUBHEADING);
             header.setForeground(TEXT_PRIMARY);
             header.setBackground(TABLE_HEADER_COLOR);
-            header.setPreferredSize(new Dimension(0, 42));
+            header.setPreferredSize(new Dimension(0, 46));
+            header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COLOR));
             header.setReorderingAllowed(false);
         } else if (component instanceof JTextField || component instanceof JPasswordField
                 || component instanceof JComboBox<?>) {

@@ -1,6 +1,8 @@
 package service;
 
 import dao.BillDAO;
+import model.BillingAdmission;
+import model.BillingPatient;
 import model.User;
 import model.UserRole;
 import model.UserStatus;
@@ -10,6 +12,8 @@ import security.SessionManager;
 
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.time.LocalDate;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -68,6 +72,27 @@ class BillingServiceTest {
         assertEquals("database unavailable", error.getMessage());
     }
 
+    @Test
+    void billingPatientAndAdmissionChoicesRemainRestrictedToBillingRoles() {
+        for (UserRole role : UserRole.values()) {
+            SessionManager sessions = new SessionManager(Clock.systemUTC());
+            sessions.createSession(user(role));
+            FakeBills bills = new FakeBills();
+            BillingService service = new BillingService(bills, sessions, new AuthorizationService());
+
+            if (role == UserRole.ADMIN || role == UserRole.ACCOUNTANT) {
+                assertEquals(1, service.getBillingPatients().get(0).patientId());
+                assertEquals(1, service.getAdmissionsForPatient(1).get(0).admissionId());
+                assertEquals(2, bills.choiceCalls);
+            } else {
+                assertThrows(AuthorizationService.AccessDeniedException.class, service::getBillingPatients);
+                assertThrows(AuthorizationService.AccessDeniedException.class,
+                        () -> service.getAdmissionsForPatient(1));
+                assertEquals(0, bills.choiceCalls);
+            }
+        }
+    }
+
     private static User user(UserRole role) {
         return new User(1, "staff", "staff@example.org", "hash", "Billing Staff", "",
                 role, UserStatus.ACTIVE, 0, null);
@@ -78,6 +103,19 @@ class BillingServiceTest {
         private boolean paymentResult = true;
         private boolean deleteResult = true;
         private RuntimeException failure;
+        private int choiceCalls;
+
+        @Override
+        public List<BillingPatient> getBillingPatients() {
+            choiceCalls++;
+            return List.of(new BillingPatient(1, "Billing Patient"));
+        }
+
+        @Override
+        public List<BillingAdmission> getAdmissionsForPatient(int patientId) {
+            choiceCalls++;
+            return List.of(new BillingAdmission(1, LocalDate.of(2026, 1, 1), null));
+        }
 
         @Override
         public boolean addPayment(int billId, BigDecimal amount) {
