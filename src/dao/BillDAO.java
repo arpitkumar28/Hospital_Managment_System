@@ -43,6 +43,7 @@ public class BillDAO {
             BigDecimal otherCharges,
             BigDecimal paidAmount
     ) {
+        validateIds(patientId, admissionId);
         BigDecimal totalAmount = calculateTotal(roomCharges, doctorCharges, medicineCharges, otherCharges);
 
         if (!isValidPaidAmount(paidAmount, totalAmount)) {
@@ -121,6 +122,7 @@ public class BillDAO {
             BigDecimal otherCharges,
             BigDecimal paidAmount
     ) {
+        validateIds(patientId, admissionId);
         BigDecimal totalAmount = calculateTotal(roomCharges, doctorCharges, medicineCharges, otherCharges);
 
         if (!isValidPaidAmount(paidAmount, totalAmount)) {
@@ -197,6 +199,15 @@ public class BillDAO {
         } catch (SQLException e) {
             LOGGER.error("Unable to update bill {}.", billId, e);
             throw new IllegalStateException("Unable to update bill.", e);
+        }
+    }
+
+    private static void validateIds(int patientId, Integer admissionId) {
+        if (patientId <= 0) {
+            throw new IllegalArgumentException("Select a valid patient before saving the bill.");
+        }
+        if (admissionId != null && admissionId <= 0) {
+            throw new IllegalArgumentException("Select a valid admission or leave admission blank.");
         }
     }
 

@@ -24,19 +24,22 @@ public final class PatientAuthService {
         try{
             if(sessions.isLoggedIn() || SessionManager.INSTANCE.isLoggedIn())throw new AuthException("Sign out before starting another session.");
             if(!ValidationUtil.isValidLogin(id,supplied))throw new AuthException("Enter your email or patient username and password.");
-            var found=dao.findByIdentifier(id.trim()); if(found.isEmpty()){audit.recordEvent(null,"PATIENT_LOGIN_FAILURE");throw denied();}
+            var found=dao.findByIdentifier(id.trim()); if(found.isEmpty()){recordAudit("PATIENT_LOGIN_FAILURE");throw denied();}
             var account=found.get();
             if("LOCKED".equals(account.status())&&dao.restoreExpiredLock(account.patientId()))account=dao.findByIdentifier(id.trim()).orElse(account);
             if(!PasswordUtil.verifyPassword(supplied,account.hash())){
                 boolean locked="ACTIVE".equals(account.status())&&dao.recordFailure(account.patientId(),AuthSecurityConfig.MAX_FAILED_ATTEMPTS,AuthSecurityConfig.LOCKOUT_MINUTES);
-                audit.recordEvent(null,locked?"PATIENT_ACCOUNT_LOCKED":"PATIENT_LOGIN_FAILURE");throw denied();
+                recordAudit(locked?"PATIENT_ACCOUNT_LOCKED":"PATIENT_LOGIN_FAILURE");throw denied();
             }
-            if(!"ACTIVE".equals(account.status())){audit.recordEvent(null,"PATIENT_LOGIN_FAILURE");throw denied();}
+            if(!"ACTIVE".equals(account.status())){recordAudit("PATIENT_LOGIN_FAILURE");throw denied();}
             if(!dao.recordSuccess(account.patientId()))throw denied();
             if(!audit.recordEvent(null,"PATIENT_LOGIN_SUCCESS"))throw new AuthException("Unable to connect to the hospital database.");
             return sessions.create(account.patientId(),account.name());
         }catch(SQLException ex){LOG.error("Patient authentication operation failed.",ex);throw new AuthException("Unable to connect to the hospital database.");}
         finally{Arrays.fill(supplied,'\0');}
+    }
+    private void recordAudit(String event) throws AuthException {
+        if(!audit.recordEvent(null,event))throw new AuthException("Unable to connect to the hospital database.");
     }
     private AuthException denied(){return new AuthException("Your username or password is incorrect.");}
     public void logout(){sessions.logout();}
