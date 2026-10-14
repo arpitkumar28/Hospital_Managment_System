@@ -70,6 +70,59 @@ psql -h localhost -p 5432 -U hms_app_dev -d hospital_management_dev \
 Run this only against a separately created, empty development database; the base
 migration is intentionally one-time DDL and will fail if its business tables
 already exist. The authentication migration is additive and repeatable.
+
+## Repairing an existing development database
+
+Do not run `database/schema.sql` against an existing database: it starts with
+the one-time initial schema. The checked-in files are not tracked in a migration
+history table, so determine the applied state from PostgreSQL's catalog. Connect
+to the confirmed development database with `.env.local` loaded, verify the
+database name, inspect the relevant objects, and take a backup first:
+
+```sh
+set -a
+source .env.local
+set +a
+psql -h "$HOSPITAL_DB_HOST" -p "$HOSPITAL_DB_PORT" -U "$HOSPITAL_DB_USER" \
+  -d "$HOSPITAL_DB_NAME" -v ON_ERROR_STOP=1 \
+  -c 'SELECT current_database();' \
+  -c "SELECT to_regclass('public.patients') AS patients, to_regclass('public.patient_credentials') AS patient_credentials, to_regclass('public.audit_logs') AS audit_logs;" \
+  -c "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('patients','patient_credentials','audit_logs') ORDER BY table_name;"
+```
+
+After confirming the target is the intended development database and a backup
+exists, apply only the additive authentication migrations that are missing. In
+the known case where the existing application schema already has `patients`,
+but the patient credentials table is absent, run:
+
+```sh
+psql -h "$HOSPITAL_DB_HOST" -p "$HOSPITAL_DB_PORT" -U "$HOSPITAL_DB_USER" \
+  -d "$HOSPITAL_DB_NAME" -v ON_ERROR_STOP=1 \
+  -f database/migrations/002_authentication_foundation.sql \
+  -f database/migrations/003_patient_authentication.sql
+```
+
+Both files use additive/idempotent DDL. Migration 003 needs the existing
+`patients` table and adds no patient rows. Do not run migration 001 on an
+existing database. If either authentication migration encounters schema drift,
+stop and inspect the error rather than editing/dropping existing objects. These
+commands do not create a migration-history record; capture which numbered files
+were applied in the development environment's deployment notes. Startup never
+runs migrations.
+
+## Provisioning a development patient login
+
+Patient credential enrollment is not exposed in the UI. First create the
+patient through the authorized staff Patients screen, then use a trusted
+development-only Java helper or local provisioning utility that calls
+`PasswordUtil.hashPassword(char[])` and inserts the resulting hash into
+`patient_credentials` for that existing `patient_id`, with a unique username,
+matching email, and `status='ACTIVE'`. The `patient_id` must be selected from
+the database; never guess or hardcode one. Keep the helper local/untracked and
+remove it after use. Do not insert plaintext passwords or hand-written hashes.
+The table's foreign key and unique indexes enforce the patient relationship and
+unique case-insensitive login identifiers. Patient accounts remain separate
+from `users` staff identities.
 `seed.sql` contains no demo account or password. To create the first
 administrator, supply `HOSPITAL_INITIAL_ADMIN_USERNAME`,
 `HOSPITAL_INITIAL_ADMIN_EMAIL`, and `HOSPITAL_INITIAL_ADMIN_PASSWORD` in the

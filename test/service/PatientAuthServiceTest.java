@@ -85,8 +85,29 @@ class PatientAuthServiceTest {
         assertFalse(sessions.isLoggedIn());
     }
 
+    @Test
+    void failedLoginAuditFailsClosed() {
+        audit.result = false;
+        patients.hash = PasswordUtil.hashPassword("different-secret".toCharArray());
+
+        assertThrows(PatientAuthService.AuthException.class,
+                () -> service.authenticate("patient", "wrong-password".toCharArray()));
+
+        assertFalse(sessions.isLoggedIn());
+    }
+
+    @Test
+    void successfulPasswordVerificationUsesBcryptAndConsumesSuppliedArray() throws Exception {
+        char[] password = "HealthyPass9!".toCharArray();
+
+        assertTrue(PasswordUtil.verifyPassword(password, PasswordUtil.hashPassword("HealthyPass9!".toCharArray())));
+        assertFalse(PasswordUtil.verifyPassword("incorrect".toCharArray(), patients.hash));
+        service.authenticate("patient@example.org", password);
+        assertArrayEquals(new char[password.length], password);
+    }
+
     private static final class FakePatients extends PatientAuthDAO {
-        private final String hash = PasswordUtil.hashPassword("HealthyPass9!".toCharArray());
+        private String hash = PasswordUtil.hashPassword("HealthyPass9!".toCharArray());
         private String status = "ACTIVE";
         private int lookupCalls;
         private int successCalls;
