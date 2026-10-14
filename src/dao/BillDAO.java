@@ -1,6 +1,8 @@
 package dao;
 
 import database.DatabaseConnection;
+import model.BillingAdmission;
+import model.BillingPatient;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -16,6 +18,46 @@ import org.slf4j.LoggerFactory;
 public class BillDAO {
     private static final Logger LOGGER = LoggerFactory.getLogger(BillDAO.class);
     private static final BigDecimal MAX_CURRENCY_AMOUNT = new BigDecimal("9999999999.99");
+
+    public List<BillingPatient> getBillingPatients() {
+        String sql = "SELECT patient_id, name FROM patients ORDER BY lower(name), patient_id";
+        List<BillingPatient> patients = new ArrayList<>();
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet result = statement.executeQuery()) {
+            while (result.next()) {
+                patients.add(new BillingPatient(result.getInt("patient_id"), result.getString("name")));
+            }
+        } catch (SQLException exception) {
+            LOGGER.error("Unable to load patients for billing.", exception);
+            throw new IllegalStateException("Unable to load billing patients.", exception);
+        }
+        return patients;
+    }
+
+    public List<BillingAdmission> getAdmissionsForPatient(int patientId) {
+        if (patientId <= 0) throw new IllegalArgumentException("Select a valid patient first.");
+        String sql = "SELECT admission_id, admission_date, discharge_date FROM admissions "
+                + "WHERE patient_id = ? ORDER BY admission_date DESC, admission_id DESC";
+        List<BillingAdmission> admissions = new ArrayList<>();
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, patientId);
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    java.sql.Date admissionDate = result.getDate("admission_date");
+                    java.sql.Date dischargeDate = result.getDate("discharge_date");
+                    admissions.add(new BillingAdmission(result.getInt("admission_id"),
+                            admissionDate.toLocalDate(),
+                            dischargeDate == null ? null : dischargeDate.toLocalDate()));
+                }
+            }
+        } catch (SQLException exception) {
+            LOGGER.error("Unable to load billing admissions for patient {}.", patientId, exception);
+            throw new IllegalStateException("Unable to load admissions for the selected patient.", exception);
+        }
+        return admissions;
+    }
 
     // =========================================================
     // ADD BILL
