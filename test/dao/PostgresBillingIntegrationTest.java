@@ -23,6 +23,7 @@ class PostgresBillingIntegrationTest {
     private static final BillDAO bills = new BillDAO();
     private static final ReportDAO reports = new ReportDAO();
     private static int patientId;
+    private static int secondPatientId;
     private static int roomId;
     private static int bedId;
     private static int admissionId;
@@ -49,6 +50,14 @@ class PostgresBillingIntegrationTest {
                 try (ResultSet result = patient.executeQuery()) {
                     assertTrue(result.next());
                     patientId = result.getInt(1);
+                }
+            }
+            try (PreparedStatement patient = connection.prepareStatement(
+                    "INSERT INTO patients (name) VALUES (?) RETURNING patient_id")) {
+                patient.setString(1, "Billing integration other patient " + java.util.UUID.randomUUID());
+                try (ResultSet result = patient.executeQuery()) {
+                    assertTrue(result.next());
+                    secondPatientId = result.getInt(1);
                 }
             }
             try (PreparedStatement room = connection.prepareStatement(
@@ -86,8 +95,10 @@ class PostgresBillingIntegrationTest {
     static void tearDown() throws Exception {
         if (patientId == 0) return;
         try (Connection connection = DatabaseConnection.getConnection()) {
-            try (PreparedStatement statement = connection.prepareStatement("DELETE FROM bills WHERE patient_id = ?")) {
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "DELETE FROM bills WHERE patient_id IN (?, ?)")) {
                 statement.setInt(1, patientId);
+                statement.setInt(2, secondPatientId);
                 statement.executeUpdate();
             }
             try (PreparedStatement statement = connection.prepareStatement("DELETE FROM admissions WHERE admission_id = ?")) {
@@ -102,8 +113,10 @@ class PostgresBillingIntegrationTest {
                 statement.setInt(1, roomId);
                 statement.executeUpdate();
             }
-            try (PreparedStatement statement = connection.prepareStatement("DELETE FROM patients WHERE patient_id = ?")) {
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "DELETE FROM patients WHERE patient_id IN (?, ?)")) {
                 statement.setInt(1, patientId);
+                statement.setInt(2, secondPatientId);
                 statement.executeUpdate();
             }
         }
@@ -112,10 +125,27 @@ class PostgresBillingIntegrationTest {
     @Test
     void billingReferencesPaymentsAndReportsReconcileAgainstPostgres() throws Exception {
         BigDecimal total = new BigDecimal("100.00");
+        assertTrue(bills.getAdmissionsForPatient(patientId).stream()
+                .anyMatch(admission -> admission.admissionId() == admissionId));
+        assertFalse(bills.getAdmissionsForPatient(secondPatientId).stream()
+                .anyMatch(admission -> admission.admissionId() == admissionId),
+                "Admission choices for the second patient must exclude the first patient's admission.");
         assertFalse(bills.addBill(Integer.MAX_VALUE, admissionId, total, BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
         assertFalse(bills.addBill(patientId, Integer.MAX_VALUE, total, BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
+        assertFalse(bills.addBill(secondPatientId, admissionId, total, BigDecimal.ZERO,
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO),
+                "An admission belonging to the first patient cannot be billed to the second patient.");
+        assertTrue(bills.addBill(secondPatientId, (Integer) null, total, BigDecimal.ZERO,
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
+        Object[] secondPatientBill = bills.getBillsByPatient(secondPatientId).stream()
+                .filter(row -> row[2] == null).findFirst().orElseThrow();
+        int secondPatientBillId = (int) secondPatientBill[0];
+        assertFalse(bills.updateBill(secondPatientBillId, secondPatientId, admissionId, total,
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO),
+                "Updating a bill must reject an admission owned by a different patient.");
+        assertTrue(bills.deleteBill(secondPatientBillId));
         assertTrue(bills.addBill(patientId, admissionId, total, BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
         assertTrue(bills.addBill(patientId, (Integer) null, new BigDecimal("20.00"), BigDecimal.ZERO,

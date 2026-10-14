@@ -159,7 +159,7 @@ class PostgresBedManagementIntegrationTest {
     private static int insertRoom(Connection connection, String suffix) throws Exception {
         try (PreparedStatement statement = connection.prepareStatement(
                 "INSERT INTO rooms (room_number, room_type, price_per_day) VALUES (?, 'Test', 0) RETURNING room_id")) {
-            statement.setString(1, "IT-BED-" + suffix + "-" + unique);
+            statement.setString(1, "IT-" + suffix + "-" + unique.replace("-", ""));
             try (ResultSet result = statement.executeQuery()) { assertTrue(result.next()); return result.getInt(1); }
         }
     }

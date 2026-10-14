@@ -1,6 +1,8 @@
 package service;
 
 import dao.BillDAO;
+import model.BillingAdmission;
+import model.BillingPatient;
 import security.AuthorizationService;
 import security.SessionManager;
 
@@ -39,6 +41,12 @@ public final class BillingService extends AuthorizedService {
                 roomCharges, doctorCharges, medicineCharges, otherCharges, paidAmount));
     }
     public boolean deleteBill(int billId) { return execute(AuthorizationService.BILLING, () -> bills.deleteBill(billId)); }
+    public List<BillingPatient> getBillingPatients() {
+        return execute(AuthorizationService.BILLING, bills::getBillingPatients);
+    }
+    public List<BillingAdmission> getAdmissionsForPatient(int patientId) {
+        return execute(AuthorizationService.BILLING, () -> bills.getAdmissionsForPatient(patientId));
+    }
     public List<Object[]> getAllBills() { return execute(AuthorizationService.BILLING, bills::getAllBills); }
     public List<Object[]> getBillsByPatient(int patientId) {
         return execute(AuthorizationService.BILLING, () -> bills.getBillsByPatient(patientId));

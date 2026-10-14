@@ -1,6 +1,8 @@
 package ui;
 
 import service.BillingService;
+import model.BillingAdmission;
+import model.BillingPatient;
 import ui.theme.AppTheme;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,8 +25,8 @@ public class BillingPanel extends JFrame {
     private static final Logger LOGGER = LoggerFactory.getLogger(BillingPanel.class);
 
     private JTextField billIdField;
-    private JTextField patientIdField;
-    private JTextField admissionIdField;
+    private JComboBox<BillingPatient> patientComboBox;
+    private JComboBox<BillingAdmission> admissionComboBox;
 
     private JTextField roomChargesField;
     private JTextField doctorChargesField;
@@ -46,6 +48,14 @@ public class BillingPanel extends JFrame {
     private JButton clearButton;
     private JButton refreshButton;
     private boolean databaseBusy;
+    private boolean loadingPatientChoices;
+    private boolean patientChoicesLoading;
+    private boolean patientChoicesRefreshPending;
+    private boolean patientChoicesLoaded;
+    private boolean admissionChoicesLoaded;
+    private int admissionLoadGeneration;
+    private Integer pendingPatientSelection;
+    private Integer pendingAdmissionSelection;
 
     private final BillingService billingService = new BillingService();
 
@@ -60,6 +70,7 @@ public class BillingPanel extends JFrame {
         buildUI();
         AppTheme.styleLegacyWindow(getContentPane());
         loadBills();
+        loadBillingPatients();
         setVisible(true);
     }
 
@@ -120,8 +131,14 @@ public class BillingPanel extends JFrame {
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         billIdField = createField();
-        patientIdField = createField();
-        admissionIdField = createField();
+        patientComboBox = new JComboBox<>();
+        patientComboBox.addItem(patientPlaceholder());
+        patientComboBox.setToolTipText("Choose an existing patient for this bill.");
+        patientComboBox.addActionListener(event -> billingPatientChanged());
+        admissionComboBox = new JComboBox<>();
+        admissionComboBox.addItem(noAdmissionOption());
+        admissionComboBox.setToolTipText("Optional. Choices are limited to the selected patient.");
+        admissionComboBox.setEnabled(false);
 
         roomChargesField = createField();
         doctorChargesField = createField();
@@ -154,8 +171,8 @@ public class BillingPanel extends JFrame {
                 gbc,
                 2,
                 0,
-                "Patient ID:",
-                patientIdField
+                "Patient:",
+                patientComboBox
         );
 
         addField(
@@ -163,11 +180,9 @@ public class BillingPanel extends JFrame {
                 gbc,
                 4,
                 0,
-                "Admission ID (optional):",
-                admissionIdField
+                "Admission (optional):",
+                admissionComboBox
         );
-        admissionIdField.setToolTipText(
-                "Leave blank if there is no admission; a supplied admission must belong to this patient.");
 
         // Row 1
 
@@ -292,9 +307,10 @@ public class BillingPanel extends JFrame {
                 e -> clearFields()
         );
 
-        refreshButton.addActionListener(
-                e -> loadBills()
-        );
+        refreshButton.addActionListener(e -> {
+            loadBills();
+            loadBillingPatients();
+        });
 
         // -----------------------------------------------------
         // TOP SECTION
@@ -457,6 +473,178 @@ public class BillingPanel extends JFrame {
         setContentPane(mainPanel);
     }
 
+    private void loadBillingPatients() {
+        if (patientChoicesLoading) {
+            patientChoicesRefreshPending = true;
+            return;
+        }
+        patientChoicesLoading = true;
+        patientChoicesLoaded = false;
+        patientComboBox.setEnabled(false);
+        Integer previouslySelected = pendingPatientSelection != null
+                ? pendingPatientSelection : selectedPatientIdOrNull();
+
+        new SwingWorker<List<BillingPatient>, Void>() {
+            @Override protected List<BillingPatient> doInBackground() {
+                return billingService.getBillingPatients();
+            }
+
+            @Override protected void done() {
+                patientChoicesLoading = false;
+                try {
+                    List<BillingPatient> patients = get();
+                    loadingPatientChoices = true;
+                    patientComboBox.removeAllItems();
+                    patientComboBox.addItem(patientPlaceholder());
+                    for (BillingPatient patient : patients) patientComboBox.addItem(patient);
+                    BillingPatient selected = findPatient(previouslySelected);
+                    patientComboBox.setSelectedItem(selected == null ? patientPlaceholder() : selected);
+                    loadingPatientChoices = false;
+                    patientChoicesLoaded = true;
+                    pendingPatientSelection = null;
+
+                    if (selected == null) {
+                        resetAdmissionChoices();
+                    } else {
+                        loadAdmissionsForPatient(selected.patientId(), pendingAdmissionSelection);
+                    }
+                    pendingAdmissionSelection = null;
+                    patientComboBox.setEnabled(!databaseBusy);
+                } catch (Exception exception) {
+                    loadingPatientChoices = false;
+                    patientChoicesLoaded = false;
+                    admissionChoicesLoaded = false;
+                    patientComboBox.setEnabled(false);
+                    admissionComboBox.setEnabled(false);
+                    LOGGER.error("Unable to load billing patient choices.", exception);
+                    JOptionPane.showMessageDialog(BillingPanel.this,
+                            "Could not load patients. Check the database connection and retry.",
+                            "Billing Data Error", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    if (patientChoicesRefreshPending) {
+                        patientChoicesRefreshPending = false;
+                        loadBillingPatients();
+                    }
+                }
+            }
+        }.execute();
+    }
+
+    private void billingPatientChanged() {
+        if (loadingPatientChoices) return;
+        pendingPatientSelection = null;
+        pendingAdmissionSelection = null;
+        Integer patientId = selectedPatientIdOrNull();
+        if (patientId == null) {
+            resetAdmissionChoices();
+        } else {
+            loadAdmissionsForPatient(patientId, null);
+        }
+    }
+
+    private void loadAdmissionsForPatient(int patientId, Integer desiredAdmissionId) {
+        int request = ++admissionLoadGeneration;
+        admissionChoicesLoaded = false;
+        admissionComboBox.setEnabled(false);
+        admissionComboBox.removeAllItems();
+        admissionComboBox.addItem(noAdmissionOption());
+
+        new SwingWorker<List<BillingAdmission>, Void>() {
+            @Override protected List<BillingAdmission> doInBackground() {
+                return billingService.getAdmissionsForPatient(patientId);
+            }
+
+            @Override protected void done() {
+                if (request != admissionLoadGeneration) return;
+                try {
+                    List<BillingAdmission> admissions = get();
+                    if (!Integer.valueOf(patientId).equals(selectedPatientIdOrNull())) return;
+                    admissionComboBox.removeAllItems();
+                    admissionComboBox.addItem(noAdmissionOption());
+                    BillingAdmission selected = null;
+                    for (BillingAdmission admission : admissions) {
+                        admissionComboBox.addItem(admission);
+                        if (desiredAdmissionId != null && admission.admissionId() == desiredAdmissionId) {
+                            selected = admission;
+                        }
+                    }
+                    if (selected != null) admissionComboBox.setSelectedItem(selected);
+                    admissionChoicesLoaded = true;
+                    admissionComboBox.setEnabled(!databaseBusy);
+                } catch (Exception exception) {
+                    admissionChoicesLoaded = false;
+                    admissionComboBox.setEnabled(false);
+                    LOGGER.error("Unable to load admissions for billing patient {}.", patientId, exception);
+                    JOptionPane.showMessageDialog(BillingPanel.this,
+                            "Could not load admissions for the selected patient. Refresh and retry.",
+                            "Billing Data Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }.execute();
+    }
+
+    private void resetAdmissionChoices() {
+        admissionLoadGeneration++;
+        admissionChoicesLoaded = true;
+        admissionComboBox.removeAllItems();
+        admissionComboBox.addItem(noAdmissionOption());
+        admissionComboBox.setEnabled(false);
+    }
+
+    private BillingPatient findPatient(Integer patientId) {
+        if (patientId == null) return null;
+        for (int index = 0; index < patientComboBox.getItemCount(); index++) {
+            BillingPatient patient = patientComboBox.getItemAt(index);
+            if (patient.patientId() == patientId) return patient;
+        }
+        return null;
+    }
+
+    private void selectPatient(Integer patientId, Integer admissionId) {
+        BillingPatient patient = findPatient(patientId);
+        loadingPatientChoices = true;
+        patientComboBox.setSelectedItem(patient == null ? patientPlaceholder() : patient);
+        loadingPatientChoices = false;
+        if (patient == null) {
+            resetAdmissionChoices();
+            return;
+        }
+        loadAdmissionsForPatient(patient.patientId(), admissionId);
+    }
+
+    private Integer selectedPatientIdOrNull() {
+        Object selected = patientComboBox.getSelectedItem();
+        if (selected instanceof BillingPatient patient && !patient.isPlaceholder()) {
+            return patient.patientId();
+        }
+        return null;
+    }
+
+    private int selectedPatientId() {
+        Integer patientId = selectedPatientIdOrNull();
+        if (patientId == null) throw new IllegalArgumentException("Select a patient for this bill.");
+        return patientId;
+    }
+
+    private Integer selectedAdmissionId() {
+        if (!admissionChoicesLoaded) {
+            throw new IllegalArgumentException("Wait for the selected patient's admissions to load, then retry.");
+        }
+        Object selected = admissionComboBox.getSelectedItem();
+        if (selected instanceof BillingAdmission admission && !admission.isNone()) {
+            return admission.admissionId();
+        }
+        return null;
+    }
+
+    private static BillingPatient patientPlaceholder() {
+        return new BillingPatient(0, "Select a patient…");
+    }
+
+    private static BillingAdmission noAdmissionOption() {
+        return new BillingAdmission(0, null, null);
+    }
+
     // =========================================================
     // CREATE FIELD
     // =========================================================
@@ -612,11 +800,6 @@ public class BillingPanel extends JFrame {
         return value;
     }
 
-    private Integer getOptionalInteger(JTextField field, String fieldName) {
-        if (field.getText().isBlank()) return null;
-        return getInteger(field, fieldName);
-    }
-
     // =========================================================
     // ADD BILL
     // =========================================================
@@ -625,17 +808,8 @@ public class BillingPanel extends JFrame {
 
         try {
 
-            int patientId =
-                    getInteger(
-                            patientIdField,
-                            "Patient ID"
-                    );
-
-            Integer admissionId =
-                    getOptionalInteger(
-                            admissionIdField,
-                            "Admission ID"
-                    );
+            int patientId = selectedPatientId();
+            Integer admissionId = selectedAdmissionId();
 
             BigDecimal room =
                     parseAmount(
@@ -772,17 +946,8 @@ public class BillingPanel extends JFrame {
                             "Bill ID"
                     );
 
-            int patientId =
-                    getInteger(
-                            patientIdField,
-                            "Patient ID"
-                    );
-
-            Integer admissionId =
-                    getOptionalInteger(
-                            admissionIdField,
-                            "Admission ID"
-                    );
+            int patientId = selectedPatientId();
+            Integer admissionId = selectedAdmissionId();
 
             BigDecimal room =
                     parseAmount(
@@ -1090,8 +1255,9 @@ public class BillingPanel extends JFrame {
         clearButton.setEnabled(enabled);
         refreshButton.setEnabled(enabled);
         billIdField.setEnabled(enabled);
-        patientIdField.setEnabled(enabled);
-        admissionIdField.setEnabled(enabled);
+        patientComboBox.setEnabled(enabled && patientChoicesLoaded);
+        admissionComboBox.setEnabled(enabled && admissionChoicesLoaded
+                && selectedPatientIdOrNull() != null);
         roomChargesField.setEnabled(enabled);
         doctorChargesField.setEnabled(enabled);
         medicineChargesField.setEnabled(enabled);
@@ -1143,14 +1309,15 @@ public class BillingPanel extends JFrame {
                 )
         );
 
-        patientIdField.setText(
-                String.valueOf(
-                        tableModel.getValueAt(row, 1)
-                )
-        );
-
-        Object admissionId = tableModel.getValueAt(row, 2);
-        admissionIdField.setText(admissionId == null ? "" : String.valueOf(admissionId));
+        int patientId = ((Number) tableModel.getValueAt(row, 1)).intValue();
+        Object admissionValue = tableModel.getValueAt(row, 2);
+        Integer admissionId = admissionValue == null ? null : ((Number) admissionValue).intValue();
+        if (patientChoicesLoaded) {
+            selectPatient(patientId, admissionId);
+        } else {
+            pendingPatientSelection = patientId;
+            pendingAdmissionSelection = admissionId;
+        }
 
         roomChargesField.setText(
                 String.valueOf(
@@ -1198,8 +1365,12 @@ public class BillingPanel extends JFrame {
     private void clearFields() {
 
         billIdField.setText("");
-        patientIdField.setText("");
-        admissionIdField.setText("");
+        pendingPatientSelection = null;
+        pendingAdmissionSelection = null;
+        loadingPatientChoices = true;
+        patientComboBox.setSelectedItem(patientPlaceholder());
+        loadingPatientChoices = false;
+        resetAdmissionChoices();
 
         roomChargesField.setText("");
         doctorChargesField.setText("");
